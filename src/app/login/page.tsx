@@ -5,6 +5,19 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { z } from "zod";
+
+// Validation schemas
+const loginSchema = z.object({
+  email: z.string().email("Email không hợp lệ"),
+  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+});
+
+const registerSchema = z.object({
+  name: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
+  email: z.string().email("Email không hợp lệ"),
+  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+});
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,17 +28,55 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
+  const [errors, setErrors] = useState<{
+    name?: string;
+    email?: string;
+    password?: string;
+  }>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const register = searchParams.get("register");
     if (register === "true") {
       setIsLogin(false);
+    } else {
+      setIsLogin(true);
     }
   }, [searchParams]);
 
+  const validateForm = () => {
+    try {
+      if (isLogin) {
+        loginSchema.parse({
+          email: formData.email,
+          password: formData.password,
+        });
+      } else {
+        registerSchema.parse(formData);
+      }
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: { [key: string]: string } = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,7 +91,7 @@ export default function LoginPage() {
         if (result?.error) {
           toast.error(result.error);
         } else {
-          toast.success("Logged in successfully");
+          toast.success("Đăng nhập thành công");
           router.push("/");
           router.refresh();
         }
@@ -57,10 +108,10 @@ export default function LoginPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Failed to register");
+          throw new Error(data.error || "Đăng ký thất bại");
         }
 
-        toast.success("Registered successfully");
+        toast.success("Đăng ký thành công");
         setIsLogin(true);
         setFormData({ name: "", email: "", password: "" });
       }
@@ -68,7 +119,7 @@ export default function LoginPage() {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error("An error occurred");
+        toast.error("Đã xảy ra lỗi");
       }
     } finally {
       setLoading(false);
@@ -80,7 +131,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {isLogin ? "Sign in to your account" : "Create a new account"}
+            {isLogin ? "Đăng nhập" : "Đăng ký tài khoản"}
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -88,25 +139,30 @@ export default function LoginPage() {
             {!isLogin && (
               <div>
                 <label htmlFor="name" className="sr-only">
-                  Name
+                  Tên
                 </label>
                 <input
                   id="name"
                   name="name"
                   type="text"
                   required={!isLogin}
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="Name"
+                  className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                    errors.name ? "border-red-500" : "border-gray-300"
+                  } placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                  placeholder="Tên"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
                 />
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+                )}
               </div>
             )}
             <div>
               <label htmlFor="email" className="sr-only">
-                Email address
+                Email
               </label>
               <input
                 id="email"
@@ -114,17 +170,22 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                  errors.email ? "border-red-500" : "border-gray-300"
+                } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                placeholder="Email"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+              )}
             </div>
             <div>
               <label htmlFor="password" className="sr-only">
-                Password
+                Mật khẩu
               </label>
               <input
                 id="password"
@@ -132,13 +193,18 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border ${
+                  errors.password ? "border-red-500" : "border-gray-300"
+                } placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                placeholder="Mật khẩu"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
               />
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+              )}
             </div>
           </div>
 
@@ -172,23 +238,19 @@ export default function LoginPage() {
                   </svg>
                 </span>
               ) : null}
-              {isLogin ? "Sign in" : "Sign up"}
+              {isLogin ? "Đăng nhập" : "Đăng ký"}
             </button>
           </div>
 
           <div className="text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setFormData({ name: "", email: "", password: "" });
-              }}
+            <Link
+              href={isLogin ? "/login?register=true" : "/login"}
               className="text-sm text-indigo-600 hover:text-indigo-500"
             >
               {isLogin
-                ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
-            </button>
+                ? "Chưa có tài khoản? Đăng ký"
+                : "Đã có tài khoản? Đăng nhập"}
+            </Link>
           </div>
         </form>
       </div>
