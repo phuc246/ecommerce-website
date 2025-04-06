@@ -21,15 +21,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/signin/page.js"
     ],
-    "/cart/page": [
+    "/admin/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/cart/page.js"
+      "static/chunks/app/admin/page.js"
     ],
-    "/not-found": [
+    "/admin/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/not-found.js"
+      "static/chunks/app/admin/layout.js"
     ]
   }
 }
