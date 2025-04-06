@@ -231,31 +231,39 @@ export default function UsersPage() {
                 <td className="border p-2">
                   {editingUser?.id === user.id ? (
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleUpdateUser(user.id, {
-                          name: editingUser.name,
-                          email: editingUser.email,
-                          role: editingUser.role,
-                        })}
-                        className="bg-green-500 text-white px-2 py-1 rounded"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setEditingUser(null)}
-                        className="bg-gray-500 text-white px-2 py-1 rounded"
-                      >
-                        Cancel
-                      </button>
+                      {user.role !== 'ADMIN' ? (
+                        <>
+                          <button
+                            onClick={() => handleUpdateUser(user.id, {
+                              name: editingUser.name,
+                              email: editingUser.email,
+                              role: editingUser.role,
+                            })}
+                            className="bg-green-500 text-white px-2 py-1 rounded"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingUser(null)}
+                            className="bg-gray-500 text-white px-2 py-1 rounded"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <div className="text-red-500">Cannot edit admin account</div>
+                      )}
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className="bg-blue-500 text-white px-2 py-1 rounded"
-                      >
-                        Edit
-                      </button>
+                      {user.role !== 'ADMIN' && (
+                        <button
+                          onClick={() => setEditingUser(user)}
+                          className="bg-blue-500 text-white px-2 py-1 rounded"
+                        >
+                          Edit
+                        </button>
+                      )}
                       {user.role !== 'ADMIN' && (
                         <button
                           onClick={() => handleDeleteUser(user.id)}
