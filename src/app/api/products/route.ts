@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
-import prisma from "@/lib/prisma";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 // Validation schema
@@ -76,37 +76,45 @@ export async function GET(request: Request) {
 }
 
 // POST new product
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json(
-        { error: "Bạn không có quyền truy cập" },
-        { status: 403 }
+        { error: "Không có quyền truy cập" },
+        { status: 401 }
       );
     }
 
-    const body = await request.json();
-    const validatedData = productSchema.parse({
-      ...body,
-      price: parseFloat(body.price),
-    });
+    const body = await req.json();
+    const { name, description, price, categoryId, stock, color, size, image } = body;
+
+    if (!name || !description || !price || !categoryId || !stock || !color || !size || !image) {
+      return NextResponse.json(
+        { error: "Vui lòng điền đầy đủ thông tin" },
+        { status: 400 }
+      );
+    }
 
     const product = await prisma.product.create({
-      data: validatedData,
+      data: {
+        name,
+        description,
+        price: parseFloat(price),
+        categoryId,
+        stock: parseInt(stock),
+        color,
+        size,
+        image,
+      },
     });
 
     return NextResponse.json(product);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.errors[0].message },
-        { status: 400 }
-      );
-    }
-    console.error("Error creating product:", error);
+    console.error("Lỗi khi tạo sản phẩm:", error);
     return NextResponse.json(
-      { error: "Lỗi khi tạo sản phẩm" },
+      { error: "Không thể tạo sản phẩm" },
       { status: 500 }
     );
   }
