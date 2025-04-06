@@ -12,16 +12,14 @@ export default function Navbar() {
   const pathname = usePathname();
   const { items } = useCart();
 
-  const isAdmin = session?.user?.role === "ADMIN";
-
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="text-xl font-bold text-gray-900">
-                E-Commerce
+                Shop
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -33,7 +31,7 @@ export default function Navbar() {
                     : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
               >
-                Home
+                Trang chủ
               </Link>
               <Link
                 href="/products"
@@ -43,18 +41,18 @@ export default function Navbar() {
                     : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                 } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
               >
-                Products
+                Sản phẩm
               </Link>
-              {isAdmin && (
+              {session?.user?.role === "ADMIN" && (
                 <Link
                   href="/admin"
                   className={`${
-                    pathname === "/admin"
+                    pathname.startsWith("/admin")
                       ? "border-indigo-500 text-gray-900"
                       : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                   } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
-                  Admin
+                  Quản lý
                 </Link>
               )}
             </div>
@@ -62,7 +60,7 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link
               href="/cart"
-              className="p-2 text-gray-400 hover:text-gray-500 relative"
+              className="relative p-2 text-gray-500 hover:text-gray-700"
             >
               <ShoppingCart className="h-6 w-6" />
               {items.length > 0 && (
@@ -73,27 +71,29 @@ export default function Navbar() {
             </Link>
             {session ? (
               <div className="ml-4 flex items-center">
-                <span className="text-gray-700 mr-4">{session.user?.name}</span>
+                <span className="text-sm text-gray-700 mr-4">
+                  {session.user?.name}
+                </span>
                 <button
                   onClick={() => signOut()}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-sm text-gray-500 hover:text-gray-700"
                 >
-                  Sign out
+                  Đăng xuất
                 </button>
               </div>
             ) : (
               <div className="ml-4 flex items-center space-x-4">
                 <Link
                   href="/login"
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-sm text-gray-500 hover:text-gray-700"
                 >
-                  Sign in
+                  Đăng nhập
                 </Link>
                 <Link
                   href="/login?register=true"
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                  className="text-sm text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-md"
                 >
-                  Sign up
+                  Đăng ký
                 </Link>
               </div>
             )}
