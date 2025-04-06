@@ -5,12 +5,13 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin' },
-  { name: 'Products', href: '/admin/products' },
-  { name: 'Orders', href: '/admin/orders' },
-  { name: 'Users', href: '/admin/users' },
+  { name: 'Sản phẩm', href: '/admin/products' },
+  { name: 'Danh mục', href: '/admin/categories' },
+  { name: 'Logo', href: '/admin/logo' },
 ];
 
 export default function AdminLayout({
@@ -20,13 +21,19 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const router = useRouter();
 
   if (status === 'loading') {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
-  if (!session || session.user.role !== 'ADMIN') {
-    redirect('/');
+  if (status === 'unauthenticated' || session?.user?.role !== 'ADMIN') {
+    router.push('/login');
+    return null;
   }
 
   return (

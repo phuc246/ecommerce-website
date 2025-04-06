@@ -80,47 +80,31 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        // Login
-        const result = await signIn("credentials", {
-          email: formData.email,
-          password: formData.password,
-          redirect: false,
-        });
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
 
-        if (result?.error) {
-          toast.error(result.error);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result?.ok) {
+        // Kiểm tra role của người dùng
+        const response = await fetch("/api/auth/session");
+        const session = await response.json();
+        
+        if (session?.user?.role === "ADMIN") {
+          router.push("/admin");
         } else {
-          toast.success("Đăng nhập thành công");
           router.push("/");
-          router.refresh();
         }
-      } else {
-        // Register
-        const response = await fetch("/api/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Đăng ký thất bại");
-        }
-
-        toast.success("Đăng ký thành công");
-        setIsLogin(true);
-        setFormData({ name: "", email: "", password: "" });
+        router.refresh();
       }
     } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Đã xảy ra lỗi");
-      }
+      toast.error("Đã xảy ra lỗi khi đăng nhập");
     } finally {
       setLoading(false);
     }

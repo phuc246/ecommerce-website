@@ -1,16 +1,32 @@
 'use client';
 
-import React from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
+import Image from "next/image";
 
 export default function Navbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const { items } = useCart();
+  const [logoUrl, setLogoUrl] = useState("/images/logo.png");
+
+  useEffect(() => {
+    fetchLogo();
+  }, []);
+
+  const fetchLogo = async () => {
+    try {
+      const response = await fetch("/api/logo");
+      const data = await response.json();
+      setLogoUrl(data.url);
+    } catch (error) {
+      console.error("Không thể tải logo:", error);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
@@ -18,8 +34,16 @@ export default function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-gray-900">
-                Shop
+              <Link href="/" className="flex items-center">
+                <div className="relative w-10 h-10">
+                  <Image
+                    src={logoUrl}
+                    alt="Logo"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <span className="ml-2 text-xl font-bold">Shop</span>
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -43,18 +67,6 @@ export default function Navbar() {
               >
                 Sản phẩm
               </Link>
-              {session?.user?.role === "ADMIN" && (
-                <Link
-                  href="/admin"
-                  className={`${
-                    pathname.startsWith("/admin")
-                      ? "border-indigo-500 text-gray-900"
-                      : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Quản lý
-                </Link>
-              )}
             </div>
           </div>
           <div className="flex items-center">
@@ -69,34 +81,41 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
-            {session ? (
-              <div className="ml-4 flex items-center">
-                <span className="text-sm text-gray-700 mr-4">
-                  {session.user?.name}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Đăng xuất
-                </button>
-              </div>
-            ) : (
-              <div className="ml-4 flex items-center space-x-4">
-                <Link
-                  href="/login"
-                  className="text-sm text-gray-500 hover:text-gray-700"
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  href="/login?register=true"
-                  className="text-sm text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-md"
-                >
-                  Đăng ký
-                </Link>
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {session?.user ? (
+                <>
+                  {session.user.role === "ADMIN" && (
+                    <Link
+                      href="/admin"
+                      className="text-gray-700 hover:text-gray-900"
+                    >
+                      Quản lý
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => signOut()}
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    href="/login?register=true"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                  >
+                    Đăng ký
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
