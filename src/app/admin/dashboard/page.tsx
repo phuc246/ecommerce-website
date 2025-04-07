@@ -1,120 +1,141 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import {
+  CurrencyDollarIcon,
+  ShoppingBagIcon,
+  UserGroupIcon,
+  ChartBarIcon,
+} from "@heroicons/react/24/outline";
 
 interface DashboardStats {
+  totalRevenue: number;
+  totalOrders: number;
+  totalUsers: number;
   totalProducts: number;
-  totalCategories: number;
 }
 
-export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalUsers: 0,
     totalProducts: 0,
-    totalCategories: 0,
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (session?.user?.role !== "ADMIN") {
-      router.push("/");
-    }
-  }, [session, status, router]);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch("/api/admin/stats");
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-        }
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      }
-    };
-
     fetchStats();
   }, []);
 
-  if (status === "loading") {
+  const fetchStats = async () => {
+    try {
+      const response = await fetch("/api/admin/stats");
+      if (!response.ok) throw new Error("Failed to fetch stats");
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const stats_cards = [
+    {
+      name: "Doanh thu",
+      value: new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+      }).format(stats.totalRevenue),
+      icon: CurrencyDollarIcon,
+      change: "+4.75%",
+      changeType: "positive",
+    },
+    {
+      name: "Đơn hàng",
+      value: stats.totalOrders,
+      icon: ShoppingBagIcon,
+      change: "+54.02%",
+      changeType: "positive",
+    },
+    {
+      name: "Người dùng",
+      value: stats.totalUsers,
+      icon: UserGroupIcon,
+      change: "+6.38%",
+      changeType: "positive",
+    },
+    {
+      name: "Sản phẩm",
+      value: stats.totalProducts,
+      icon: ChartBarIcon,
+      change: "+11.25%",
+      changeType: "positive",
+    },
+  ];
+
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-8">Dashboard</h1>
-      
-      {/* Welcome message */}
-      <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
-        <h2 className="text-xl font-semibold mb-2">
-          Xin chào, {session?.user?.email}
-        </h2>
-        <p className="text-gray-600">
-          Chào mừng bạn đến với trang quản trị website
-        </p>
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+      <p className="mt-2 text-sm text-gray-700">
+        Tổng quan về hoạt động của cửa hàng
+      </p>
+
+      <div className="mt-6">
+        <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {stats_cards.map((item) => (
+            <div
+              key={item.name}
+              className="relative overflow-hidden rounded-lg bg-white px-4 pt-5 pb-12 shadow sm:px-6 sm:pt-6"
+            >
+              <dt>
+                <div className="absolute rounded-md bg-indigo-500 p-3">
+                  <item.icon className="h-6 w-6 text-white" aria-hidden="true" />
+                </div>
+                <p className="ml-16 truncate text-sm font-medium text-gray-500">
+                  {item.name}
+                </p>
+              </dt>
+              <dd className="ml-16 flex items-baseline pb-6 sm:pb-7">
+                <p className="text-2xl font-semibold text-gray-900">
+                  {item.value}
+                </p>
+                <p
+                  className={`ml-2 flex items-baseline text-sm font-semibold ${
+                    item.changeType === "positive"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {item.change}
+                </p>
+                <div className="absolute inset-x-0 bottom-0 bg-gray-50 px-4 py-4 sm:px-6">
+                  <div className="text-sm">
+                    <a
+                      href="#"
+                      className="font-medium text-indigo-600 hover:text-indigo-500"
+                    >
+                      Xem chi tiết
+                      <span className="sr-only"> {item.name} stats</span>
+                    </a>
+                  </div>
+                </div>
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-gray-500 text-sm font-medium mb-2">
-            Tổng số sản phẩm
-          </h3>
-          <p className="text-3xl font-bold">{stats.totalProducts}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm">
-          <h3 className="text-gray-500 text-sm font-medium mb-2">
-            Tổng số danh mục
-          </h3>
-          <p className="text-3xl font-bold">{stats.totalCategories}</p>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold mb-4">Thao tác nhanh</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <a
-            href="/admin/products"
-            className="block p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-          >
-            <h3 className="font-medium mb-1">Quản lý sản phẩm</h3>
-            <p className="text-sm text-gray-500">
-              Thêm, sửa, xóa sản phẩm
-            </p>
-          </a>
-
-          <a
-            href="/admin/categories"
-            className="block p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-          >
-            <h3 className="font-medium mb-1">Quản lý danh mục</h3>
-            <p className="text-sm text-gray-500">
-              Thêm, sửa, xóa danh mục sản phẩm
-            </p>
-          </a>
-
-          <a
-            href="/admin/logo"
-            className="block p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-          >
-            <h3 className="font-medium mb-1">Quản lý Logo</h3>
-            <p className="text-sm text-gray-500">
-              Cập nhật logo website
-            </p>
-          </a>
-        </div>
-      </div>
+      {/* Add more dashboard components here */}
     </div>
   );
 } 

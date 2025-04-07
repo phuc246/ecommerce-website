@@ -14,34 +14,36 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  role          String    @default("USER")
+  role          Role      @default(USER)
   preferences   Json?     @default("{\"favoriteCategories\":[],\"notificationSettings\":{\"email\":true,\"sms\":false},\"language\":\"vi\"}")
   accounts      Account[]
   sessions      Session[]
-  cart          CartItem[]
+  cart          Cart?
   orders        Order[]
   addresses     Address[]
   payments      Payment[]
+  reviews       Review[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
 
 model Product {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
   description String
   price       Float
   image       String
+  colors      Color[]
+  sizes       Size[]
+  attributes  Attribute[]
   categoryId  String
-  category    Category  @relation(fields: [categoryId], references: [id])
+  category    Category    @relation(fields: [categoryId], references: [id])
   stock       Int
-  color       String
-  size        String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
   cartItems   CartItem[]
   orderItems  OrderItem[]
   reviews     Review[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 model Category {
@@ -81,6 +83,7 @@ model Order {
   payment     Payment     @relation(fields: [paymentId], references: [id])
   paymentId   String
   items       OrderItem[]
+  reviews     Review[]
   status      OrderStatus @default(PENDING)
   total       Float
   createdAt   DateTime    @default(now())
@@ -117,25 +120,25 @@ model Address {
   district    String
   ward        String
   isDefault   Boolean  @default(false)
+  orders      Order[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  orders      Order[]
 }
 
 model Payment {
-  id          String   @id @default(cuid())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
-  type        String   // credit_card, bank_transfer, etc.
-  cardNumber  String?
-  expiryDate  String?
-  cardHolder  String?
-  bankName    String?
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  type          String   // credit_card, bank_transfer, etc.
+  cardNumber    String?
+  expiryDate    String?
+  cardHolder    String?
+  bankName      String?
   accountNumber String?
-  isDefault   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orders      Order[]
+  isDefault     Boolean  @default(false)
+  orders        Order[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Review {
@@ -152,6 +155,62 @@ model Review {
   updatedAt DateTime @updatedAt
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Color {
+  id        String   @id @default(cuid())
+  name      String
+  value     String
+  image     String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Size {
+  id        String   @id @default(cuid())
+  name      String
+  value     String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attribute {
+  id        String    @id @default(cuid())
+  name      String
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 enum Role {
   USER
   ADMIN
@@ -163,4 +222,11 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 } 

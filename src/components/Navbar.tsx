@@ -13,6 +13,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const { items } = useCart();
   const [logoUrl, setLogoUrl] = useState("/images/logo.png");
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [isDefaultLogo, setIsDefaultLogo] = useState(true);
+  const [isCircularLogo, setIsCircularLogo] = useState(true);
 
   useEffect(() => {
     fetchLogo();
@@ -21,11 +25,27 @@ export default function Navbar() {
   const fetchLogo = async () => {
     try {
       const response = await fetch("/api/logo");
+      if (!response.ok) throw new Error("Failed to fetch logo");
       const data = await response.json();
-      setLogoUrl(data.url);
+      if (data && data.url) {
+        setLogoUrl(data.url);
+        setIsDefaultLogo(data.isDefault || false);
+        setIsCircularLogo(data.isCircular !== undefined ? data.isCircular : true);
+      }
     } catch (error) {
       console.error("Không thể tải logo:", error);
+      setHasError(true);
+      setIsDefaultLogo(true);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleImageError = () => {
+    console.log("Lỗi khi tải hình ảnh logo");
+    setHasError(true);
+    setLogoUrl("/images/logo.png");
+    setIsDefaultLogo(true);
   };
 
   return (
@@ -35,15 +55,7 @@ export default function Navbar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center">
-                <div className="relative w-10 h-10">
-                  <Image
-                    src={logoUrl}
-                    alt="Logo"
-                    fill
-                    className="object-contain"
-                  />
-                </div>
-                <span className="ml-2 text-xl font-bold">Shop</span>
+                <span className="text-xl font-bold">e-commerce</span>
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -70,18 +82,34 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex items-center">
-            <Link
-              href="/cart"
-              className="relative p-2 text-gray-500 hover:text-gray-700"
-            >
-              <ShoppingCart className="h-6 w-6" />
-              {items.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {items.length}
-                </span>
+            <div className="flex items-center">
+              {!hasError && !isDefaultLogo && (
+                <div className={`relative w-10 h-10 mr-4 ${isCircularLogo ? 'rounded-full overflow-hidden' : ''}`}>
+                  <Image
+                    src={logoUrl}
+                    alt="Logo"
+                    fill
+                    className={isCircularLogo ? 'rounded-full' : ''}
+                    style={{ objectFit: isCircularLogo ? 'cover' : 'contain' }}
+                    onError={handleImageError}
+                    sizes="40px"
+                    priority
+                  />
+                </div>
               )}
-            </Link>
-            <div className="flex items-center gap-4">
+              <Link
+                href="/cart"
+                className="relative p-2 text-gray-500 hover:text-gray-700"
+              >
+                <ShoppingCart className="h-6 w-6" />
+                {items.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {items.length}
+                  </span>
+                )}
+              </Link>
+            </div>
+            <div className="flex items-center gap-4 ml-4">
               {session?.user ? (
                 <>
                   {session.user.role === "ADMIN" && (

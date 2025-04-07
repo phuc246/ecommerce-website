@@ -1,26 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
-export default function LogoManagement() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [logoUrl, setLogoUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [method, setMethod] = useState<"upload" | "url">("upload");
+interface LogoData {
+  key: string;
+  value: string;
+}
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    } else if (session?.user?.role !== "ADMIN") {
-      router.push("/");
-    }
-  }, [session, status, router]);
+export default function LogoPage() {
+  const [logo, setLogo] = useState<LogoData | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isCircular, setIsCircular] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchLogo();
@@ -28,186 +25,216 @@ export default function LogoManagement() {
 
   const fetchLogo = async () => {
     try {
-      const response = await fetch("/api/logo");
+      const response = await fetch("/api/admin/logo");
+      if (!response.ok) throw new Error("Failed to fetch logo");
       const data = await response.json();
-      setLogoUrl(data.url);
+      setLogo(data);
+      if (data?.value) {
+        setPreview(data.value);
+      }
     } catch (error) {
-      toast.error("Không thể tải logo");
+      console.error("Error fetching logo:", error);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Kiểm tra kích thước file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage("Hình ảnh quá lớn. Vui lòng chọn hình có kích thước nhỏ hơn 5MB.");
+        return;
+      }
 
-    // Kiểm tra kích thước file (tối đa 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("File quá lớn. Vui lòng chọn file nhỏ hơn 2MB");
-      return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+        // Reset error state when a new image is uploaded
+        setPreviewError(false);
+        setMessage(null);
+      };
+      reader.readAsDataURL(file);
     }
+  };
 
-    // Kiểm tra định dạng file
-    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WebP)");
-      return;
-    }
+  const handleImageError = () => {
+    console.log("Error loading image");
+    setHasError(true);
+  };
 
-    setUploading(true);
+  const handlePreviewError = () => {
+    console.log("Error loading preview image");
+    setPreviewError(true);
+    setMessage("Không thể hiển thị hình ảnh xem trước. Vui lòng thử lại với hình ảnh khác.");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!preview || previewError) return;
+
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
+      setUploading(true);
+      setMessage(null);
+      
+      // In a real application, you would upload the image to a storage service
+      // and get a URL back. For now, we'll just use the data URL.
+      const imageUrl = preview;
+      
+      const response = await fetch("/api/admin/logo", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          imageUrl,
+          isCircular
+        }),
+        cache: 'no-store'
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Tải lên thất bại");
+        let errorMessage = "Failed to update logo";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (jsonError) {
+          // Xử lý trường hợp response không phải JSON
+          const text = await response.text();
+          console.error("Response is not JSON:", text);
+          if (text.includes("<!DOCTYPE")) {
+            errorMessage = "Lỗi server: Không thể kết nối đến API. Vui lòng đăng nhập lại.";
+          }
+        }
+        throw new Error(errorMessage);
       }
-
+      
       const data = await response.json();
-      setLogoUrl(data.url);
-      toast.success("Tải lên thành công");
+      setLogo(data);
+      setHasError(false);
+      setMessage("Logo đã được cập nhật thành công! Logo sẽ hiển thị ở góc phải trên thanh điều hướng.");
     } catch (error) {
-      console.error("Lỗi khi tải lên:", error);
-      toast.error(error instanceof Error ? error.message : "Tải lên thất bại");
+      console.error("Error updating logo:", error);
+      setMessage(`Lỗi khi cập nhật logo: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/logo", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url: logoUrl }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Cập nhật logo thất bại");
-      }
-
-      toast.success("Cập nhật logo thành công");
-    } catch (error) {
-      console.error("Lỗi khi cập nhật:", error);
-      toast.error(error instanceof Error ? error.message : "Cập nhật logo thất bại");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (status === "loading") {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Quản lý Logo</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold mb-6">Quản lý logo</h1>
       
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">Logo hiện tại</h2>
-          {logoUrl && (
-            <div className="relative w-32 h-32">
-              <Image
-                src={logoUrl}
-                alt="Logo"
-                fill
-                className="object-contain"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="mb-6">
-          <div className="flex space-x-4 mb-4">
-            <button
-              onClick={() => setMethod("upload")}
-              className={`px-4 py-2 rounded-md ${
-                method === "upload"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              Tải lên file
-            </button>
-            <button
-              onClick={() => setMethod("url")}
-              className={`px-4 py-2 rounded-md ${
-                method === "url"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-            >
-              Nhập URL
-            </button>
+      <div className="max-w-xl bg-white p-6 rounded-lg shadow">
+        {message && (
+          <div className={`mb-6 p-4 rounded-md ${message.includes('thành công') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            {message}
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {method === "upload" ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tải lên logo mới
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-md file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-                  disabled={uploading}
-                  title="Chọn file logo"
+        <div className="mb-6">
+          <h2 className="text-lg font-medium mb-2">Logo hiện tại</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Logo sẽ hiển thị ở phía bên phải của thanh điều hướng, cạnh giỏ hàng.
+          </p>
+          <div className="border border-gray-200 rounded-md p-4 flex items-center justify-center bg-gray-50 h-40">
+            {logo?.value && !hasError ? (
+              <div className={`relative h-32 w-32 ${isCircular ? 'rounded-full overflow-hidden' : ''}`}>
+                <Image 
+                  src={logo.value} 
+                  alt="Current Logo" 
+                  fill
+                  style={{ objectFit: 'cover' }}
+                  onError={handleImageError}
+                  sizes="128px"
+                  className={isCircular ? 'rounded-full' : ''}
                 />
-                <p className="mt-2 text-sm text-gray-500">
-                  Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WebP) và kích thước tối đa 2MB
-                </p>
-                {uploading && (
-                  <p className="mt-2 text-sm text-gray-500">Đang tải lên...</p>
-                )}
               </div>
             ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URL Logo
-                </label>
-                <input
-                  type="text"
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Nhập URL logo mới"
-                  required
-                />
-              </div>
+              <p className="text-gray-500">{hasError ? "Lỗi khi hiển thị logo" : "Chưa có logo"}</p>
             )}
-
-            <button
-              type="submit"
-              disabled={loading || uploading}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {loading ? "Đang cập nhật..." : "Cập nhật Logo"}
-            </button>
-          </form>
+          </div>
         </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-6">
+            <h2 className="text-lg font-medium mb-2">Tải lên logo mới</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Chọn hình ảnh có kích thước nhỏ (tối đa 5MB). Định dạng hỗ trợ: PNG, JPG, WEBP.
+            </p>
+            
+            <div className="mb-4">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={isCircular}
+                  onChange={() => setIsCircular(!isCircular)}
+                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 mr-2"
+                />
+                <span className="text-sm text-gray-700">Hiển thị logo dạng hình tròn</span>
+              </label>
+            </div>
+            
+            <div 
+              className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 transition-colors h-40"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {preview && preview !== logo?.value && !previewError ? (
+                <div className={`relative h-32 w-32 ${isCircular ? 'rounded-full overflow-hidden' : ''}`}>
+                  <Image 
+                    src={preview} 
+                    alt="Logo Preview" 
+                    fill
+                    style={{ objectFit: 'cover' }}
+                    onError={handlePreviewError}
+                    sizes="128px"
+                    className={isCircular ? 'rounded-full' : ''}
+                  />
+                </div>
+              ) : (
+                <>
+                  <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {previewError ? "Lỗi tải hình ảnh, vui lòng thử lại" : "Click để chọn hoặc kéo thả file vào đây"}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP</p>
+                </>
+              )}
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                className="hidden" 
+                accept="image/png, image/jpeg, image/webp"
+                aria-label="Upload logo image"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={uploading || !preview || preview === logo?.value || previewError}
+            className={`w-full py-2 px-4 rounded-md font-medium ${
+              uploading || !preview || preview === logo?.value || previewError
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-indigo-600 text-white hover:bg-indigo-700"
+            }`}
+          >
+            {uploading ? "Đang xử lý..." : "Cập nhật logo"}
+          </button>
+        </form>
       </div>
     </div>
   );

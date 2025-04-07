@@ -30,8 +30,18 @@ export default function LoginPage() {
         return;
       }
 
+      // Fetch session to check user role
+      const response = await fetch("/api/auth/session");
+      const session = await response.json();
+
       toast.success("Đăng nhập thành công");
-      router.push("/");
+      
+      // Redirect based on user role
+      if (session?.user?.role === "ADMIN") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);

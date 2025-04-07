@@ -6,17 +6,19 @@ import { User } from "@prisma/client";
 
 declare module "next-auth" {
   interface User {
+    id: string;
+    name: string;
+    email: string;
     role: string;
   }
   interface Session {
-    user: User & {
-      role: string;
-    };
+    user: User;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
+    id: string;
     role: string;
   }
 }
@@ -24,6 +26,7 @@ declare module "next-auth/jwt" {
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: "/login",
@@ -46,7 +49,7 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
-        if (!user) {
+        if (!user || !user.password) {
           throw new Error("Email hoặc mật khẩu không đúng");
         }
 
@@ -58,44 +61,30 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id,
-          email: user.email,
-          name: user.name,
+          name: user.name || "",
+          email: user.email || "",
           role: user.role,
         };
       },
     }),
   ],
   callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
+      return token;
+    },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.role = token.role;
+        session.user = {
+          ...session.user,
+          id: token.id as string,
+          role: token.role as string,
+        };
       }
-
       return session;
-    },
-    async jwt({ token, user }) {
-      const dbUser = await prisma.user.findFirst({
-        where: {
-          email: token.email,
-        },
-      });
-
-      if (!dbUser) {
-        if (user) {
-          token.id = user.id;
-        }
-        return token;
-      }
-
-      return {
-        id: dbUser.id,
-        name: dbUser.name,
-        email: dbUser.email,
-        role: dbUser.role,
-      };
     },
   },
 }; 
