@@ -1,24 +1,29 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCartIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { signOut, useSession } from "next-auth/react";
 import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { ShoppingCartIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { toast } from "sonner";
 
 export default function UserNavigation() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSignOut = async () => {
     try {
-      await signOut({ redirect: false });
-      router.push("/");
-      router.refresh();
+      setIsLoading(true);
+      await signOut({ callbackUrl: "/" });
+      toast.success("Đã đăng xuất thành công");
     } catch (error) {
       console.error("Error signing out:", error);
+      toast.error("Đăng xuất thất bại");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,38 +64,43 @@ export default function UserNavigation() {
               <ShoppingCartIcon className="h-6 w-6" />
             </Link>
             {session ? (
-              <div className="relative">
+              <>
                 <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none"
+                  onClick={handleSignOut}
+                  disabled={isLoading}
+                  className="text-gray-700 hover:text-gray-900 text-sm font-medium disabled:opacity-50"
                 >
-                  <UserCircleIcon className="h-6 w-6" />
-                  <span className="text-sm font-medium">{session.user?.name || session.user?.email}</span>
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                      Đang đăng xuất...
+                    </div>
+                  ) : (
+                    "Đăng xuất"
+                  )}
                 </button>
-                {isDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Hồ sơ của tôi
-                    </Link>
-                    <button
-                      onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
-              </div>
+                <Link
+                  href="/profile"
+                  className="text-gray-700 hover:text-gray-900 text-sm font-medium"
+                >
+                  {session.user?.name || session.user?.email}
+                </Link>
+              </>
             ) : (
-              <Link
-                href="/login"
-                className="text-gray-700 hover:text-gray-900 text-sm font-medium"
-              >
-                Đăng nhập
-              </Link>
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/register"
+                  className="text-gray-700 hover:text-gray-900 text-sm font-medium"
+                >
+                  Đăng ký
+                </Link>
+                <Link
+                  href="/login"
+                  className="text-gray-700 hover:text-gray-900 text-sm font-medium"
+                >
+                  Đăng nhập
+                </Link>
+              </div>
             )}
           </div>
         </div>

@@ -1,27 +1,37 @@
 "use client";
 
+import { ReactNode } from "react";
+
 interface VideoBackgroundProps {
-  videoSrc: string;
-  children: React.ReactNode;
+  children: ReactNode;
+  videoSrc?: string;
 }
 
-export default function VideoBackground({ videoSrc, children }: VideoBackgroundProps) {
+export default function VideoBackground({
+  children,
+  videoSrc = "/videos/background.mp4",
+}: VideoBackgroundProps) {
   return (
-    <div className="relative h-screen w-full overflow-hidden">
+    <div className="relative h-screen">
       <video
         autoPlay
         loop
         muted
         playsInline
-        className="absolute top-0 left-0 w-full h-full object-cover"
+        className="fixed inset-0 w-full h-full object-cover"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          objectFit: "cover",
+          zIndex: -1,
+        }}
       >
         <source src={videoSrc} type="video/mp4" />
-        Your browser does not support the video tag.
       </video>
-      <div className="absolute inset-0 bg-black bg-opacity-50" />
-      <div className="relative z-10 h-full w-full">
-        {children}
-      </div>
+      {children}
     </div>
   );
 } 
