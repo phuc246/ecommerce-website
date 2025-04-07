@@ -5,5 +5,6 @@
   "/auth/signin/page": "app/auth/signin/page.js",
   "/cart/page": "app/cart/page.js",
   "/profile/page": "app/profile/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/profile/route": "app/api/profile/route.js"
 }

@@ -86,6 +86,8 @@ export default function ProfilePage() {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [orderFilter, setOrderFilter] = useState("all");
   const [orderSort, setOrderSort] = useState("newest");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -179,7 +181,15 @@ export default function ProfilePage() {
 
   const filteredOrders = orders.filter((order) => {
     if (orderFilter === "all") return true;
-    return order.status === orderFilter;
+    if (order.status === orderFilter) return true;
+    if (startDate && endDate) {
+      const orderDate = new Date(order.createdAt);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      if (orderDate >= start && orderDate <= end) return true;
+    }
+    return false;
   }).sort((a, b) => {
     if (orderSort === "newest") {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -686,10 +696,40 @@ export default function ProfilePage() {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div className="flex space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          aria-label="Từ ngày"
+                        />
+                        <span className="text-gray-500">-</span>
+                        <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          aria-label="Đến ngày"
+                        />
+                        {(startDate || endDate) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStartDate("");
+                              setEndDate("");
+                            }}
+                            className="text-gray-400 hover:text-gray-500"
+                          >
+                            Xóa
+                          </button>
+                        )}
+                      </div>
                       <select
                         value={orderFilter}
                         onChange={(e) => setOrderFilter(e.target.value)}
                         className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        aria-label="Lọc đơn hàng"
                       >
                         <option value="all">Tất cả</option>
                         <option value="PENDING">Chờ xử lý</option>
@@ -702,6 +742,7 @@ export default function ProfilePage() {
                         value={orderSort}
                         onChange={(e) => setOrderSort(e.target.value)}
                         className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        aria-label="Sắp xếp đơn hàng"
                       >
                         <option value="newest">Mới nhất</option>
                         <option value="oldest">Cũ nhất</option>
@@ -793,7 +834,7 @@ export default function ProfilePage() {
         className="fixed inset-0 z-10 overflow-y-auto"
       >
         <div className="flex items-center justify-center min-h-screen">
-          <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+          <Dialog.Panel className="fixed inset-0 bg-black opacity-30" />
           <div className="relative bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <Dialog.Title className="text-lg font-medium mb-6">
               {selectedAddress ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ mới"}
@@ -817,7 +858,7 @@ export default function ProfilePage() {
         className="fixed inset-0 z-10 overflow-y-auto"
       >
         <div className="flex items-center justify-center min-h-screen">
-          <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+          <Dialog.Panel className="fixed inset-0 bg-black opacity-30" />
           <div className="relative bg-white rounded-lg p-8 max-w-md w-full mx-4">
             <Dialog.Title className="text-lg font-medium mb-6">
               {selectedPayment ? "Chỉnh sửa phương thức thanh toán" : "Thêm phương thức thanh toán"}
@@ -841,7 +882,7 @@ export default function ProfilePage() {
         className="fixed inset-0 z-10 overflow-y-auto"
       >
         <div className="flex items-center justify-center min-h-screen">
-          <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+          <Dialog.Panel className="fixed inset-0 bg-black opacity-30" />
           <div className="relative bg-white rounded-lg p-8 max-w-4xl w-full mx-4">
             <Dialog.Title className="text-lg font-medium mb-6">
               Chi tiết đơn hàng
