@@ -1,16 +1,19 @@
-import type { Metadata } from "next";
+"use client";
+
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { SessionProvider } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import UserNavigation from "@/components/UserNavigation";
+import AdminNavigation from "@/components/AdminNavigation";
 import { Toaster } from "react-hot-toast";
-import Layout from "@/components/Layout";
-import AuthProvider from "@/providers/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "E-Commerce",
-  description: "E-Commerce website",
-};
+function NavigationWrapper() {
+  const { data: session } = useSession();
+  return session?.user?.role === "ADMIN" ? <AdminNavigation /> : <UserNavigation />;
+}
 
 export default function RootLayout({
   children,
@@ -20,10 +23,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <Layout>{children}</Layout>
+        <SessionProvider>
+          <NavigationWrapper />
+          <main>{children}</main>
           <Toaster />
-        </AuthProvider>
+        </SessionProvider>
       </body>
     </html>
   );

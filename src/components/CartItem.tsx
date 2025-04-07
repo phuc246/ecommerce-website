@@ -1,3 +1,5 @@
+"use client";
+
 import { CartItem as CartItemType, Product } from "@prisma/client";
 import Image from "next/image";
 import { useState } from "react";
@@ -7,40 +9,38 @@ interface CartItemProps {
   item: CartItemType & {
     product: Product;
   };
+  onQuantityChange: (itemId: string, newQuantity: number) => void;
+  onRemove: (itemId: string) => void;
 }
 
-export default function CartItem({ item }: CartItemProps) {
-  const [loading, setLoading] = useState(false);
+export default function CartItem({ item, onQuantityChange, onRemove }: CartItemProps) {
+  const [quantity, setQuantity] = useState(item.quantity);
 
-  const updateQuantity = async (newQuantity: number) => {
+  const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity < 1) return;
     
-    setLoading(true);
     try {
       const response = await fetch(`/api/cart/${item.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          quantity: newQuantity,
-        }),
+        body: JSON.stringify({ quantity: newQuantity }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to update quantity");
       }
 
-      window.location.reload();
+      setQuantity(newQuantity);
+      onQuantityChange(item.id, newQuantity);
     } catch (error) {
-      toast.error("Failed to update quantity");
-    } finally {
-      setLoading(false);
+      console.error("Error updating quantity:", error);
+      toast.error("Không thể cập nhật số lượng");
     }
   };
 
-  const removeItem = async () => {
-    setLoading(true);
+  const handleRemove = async () => {
     try {
       const response = await fetch(`/api/cart/${item.id}`, {
         method: "DELETE",
@@ -50,59 +50,53 @@ export default function CartItem({ item }: CartItemProps) {
         throw new Error("Failed to remove item");
       }
 
-      window.location.reload();
+      onRemove(item.id);
+      toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (error) {
-      toast.error("Failed to remove item");
-    } finally {
-      setLoading(false);
+      console.error("Error removing item:", error);
+      toast.error("Không thể xóa sản phẩm");
     }
   };
 
   return (
-    <div className="flex items-center space-x-6 p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-32 w-32 flex-shrink-0">
+    <div className="flex items-center gap-4 py-3 border-b">
+      <div className="relative w-24 h-24">
         <Image
           src={item.product.image}
           alt={item.product.name}
           fill
-          className="object-cover rounded-lg"
+          className="object-cover rounded-md"
         />
       </div>
-      <div className="flex-grow">
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">{item.product.name}</h3>
-        <p className="text-blue-600 font-bold text-lg mb-4">${item.product.price.toFixed(2)}</p>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => updateQuantity(item.quantity - 1)}
-              disabled={loading || item.quantity <= 1}
-              className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              -
-            </button>
-            <span className="w-8 text-center font-medium">{item.quantity}</span>
-            <button
-              onClick={() => updateQuantity(item.quantity + 1)}
-              disabled={loading}
-              className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              +
-            </button>
-          </div>
+      <div className="flex-1">
+        <h3 className="text-lg font-medium">{item.product.name}</h3>
+        <p className="text-gray-600">
+          {new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+          }).format(item.product.price)}
+        </p>
+        <div className="flex items-center gap-2 mt-2">
           <button
-            onClick={removeItem}
-            disabled={loading}
-            className="text-red-500 hover:text-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            onClick={() => handleQuantityChange(quantity - 1)}
+            className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
           >
-            Remove
+            -
+          </button>
+          <span className="w-8 text-center">{quantity}</span>
+          <button
+            onClick={() => handleQuantityChange(quantity + 1)}
+            className="px-2 py-1 text-sm border rounded hover:bg-gray-100"
+          >
+            +
+          </button>
+          <button
+            onClick={handleRemove}
+            className="ml-4 text-sm text-red-600 hover:text-red-500"
+          >
+            Xóa
           </button>
         </div>
-      </div>
-      <div className="text-right">
-        <p className="text-sm text-gray-500 mb-1">Subtotal</p>
-        <p className="text-xl font-bold text-gray-900">
-          ${(item.product.price * item.quantity).toFixed(2)}
-        </p>
       </div>
     </div>
   );
