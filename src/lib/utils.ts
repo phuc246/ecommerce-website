@@ -1,8 +1,21 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
+/**
+ * Merge class names with clsx and tailwind-merge
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Format a price to VND currency
+ */
+export function formatPrice(price: number) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(price);
 }
 
 export function formatDate(date: Date) {
@@ -11,11 +24,4 @@ export function formatDate(date: Date) {
     month: 'short',
     day: 'numeric'
   });
-}
-
-export function formatPrice(price: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
-  }).format(price);
 } 

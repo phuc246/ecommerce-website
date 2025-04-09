@@ -11,70 +11,23 @@ const categorySchema = z.object({
 });
 
 // GET all categories
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "100");
-    const search = searchParams.get("search") || "";
+    const categories = await prisma.category.findMany({
+      orderBy: {
+        name: 'asc',
+      },
+    });
 
-    // Find categories with optional filtering
-    const [categories, total] = await Promise.all([
-      prisma.category.findMany({
-        where: {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-        orderBy: {
-          name: "asc",
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-      }),
-      prisma.category.count({
-        where: {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-      }),
-    ]);
-
-    // For each category, count the number of products
-    const categoriesWithCounts = await Promise.all(
-      categories.map(async (category) => {
-        const productCount = await prisma.product.count({
-          where: { categoryId: category.id },
-        });
-        return {
-          ...category,
-          productCount,
-        };
-      })
-    );
-
-    return NextResponse.json(
-      searchParams.has("page")
-        ? {
-            categories: categoriesWithCounts,
-            pagination: {
-              total,
-              pages: Math.ceil(total / limit),
-              page,
-              limit,
-            },
-          }
-        : categoriesWithCounts
-    );
+    return NextResponse.json(categories);
   } catch (error) {
-    console.error("Error fetching categories:", error);
+    console.error('Error fetching categories:', error);
     return NextResponse.json(
-      { error: "Lỗi khi tải danh mục" },
+      { error: 'Failed to fetch categories' },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

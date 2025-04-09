@@ -9,32 +9,36 @@ import EditProductModal from "./EditProductModal";
 interface Product {
   id: string;
   name: string;
+  description: string;
   price: number;
   image: string;
   stock: number;
+  categoryId: string;
   category: {
     id: string;
     name: string;
   };
-  colors: Array<{
+  colors: {
     id: string;
     name: string;
     value: string;
-  }>;
-  sizes: Array<{
+    image: string | null;
+  }[];
+  sizes: {
     id: string;
     name: string;
-  }>;
-  attributes: Array<{
+  }[];
+  attributes: {
     id: string;
     name: string;
-  }>;
+  }[];
 }
 
 export default function ProductTable() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -70,6 +74,17 @@ export default function ProductTable() {
       console.error("Error:", error);
       toast.error("Không thể xóa sản phẩm");
     }
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
+    fetchProducts();
   };
 
   if (loading) {
@@ -178,10 +193,10 @@ export default function ProductTable() {
                         ))}
                       </div>
                     </td>
-                    <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                    <td className="whitespace-nowrap py-4 px-3 text-sm text-gray-900">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setEditingProduct(product)}
+                          onClick={() => handleEdit(product)}
                           className="text-indigo-600 hover:text-indigo-900"
                           title="Chỉnh sửa"
                         >
@@ -203,13 +218,10 @@ export default function ProductTable() {
           </div>
         </div>
       </div>
-      {editingProduct && (
+      {isModalOpen && editingProduct && (
         <EditProductModal
-          isOpen={!!editingProduct}
-          onClose={() => {
-            setEditingProduct(null);
-            fetchProducts();
-          }}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
           product={editingProduct}
         />
       )}
