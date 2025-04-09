@@ -31,13 +31,16 @@ model Product {
   id          String      @id @default(cuid())
   name        String
   description String
-  price       Float
+  price       Float       // Regular price
+  salePrice   Float?      // Optional sale price
+  sku         String?     // Stock keeping unit
   image       String
   colors      Color[]
   sizes       Size[]
   attributes  Attribute[]
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])
+  trends      Trend[]     // Relationship to trends
   stock       Int
   cartItems   CartItem[]
   orderItems  OrderItem[]
@@ -47,11 +50,14 @@ model Product {
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  name      String
-  products  Product[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String     @id @default(cuid())
+  name          String
+  parentId      String?
+  parent        Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories Category[] @relation("CategoryToSubcategory")
+  products      Product[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model Cart {
@@ -229,4 +235,14 @@ model Setting {
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Trend {
+  id           String    @id @default(cuid())
+  name         String
+  image        String
+  productCount Int       @default(0)
+  products     Product[] // Relationship to products
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 } 

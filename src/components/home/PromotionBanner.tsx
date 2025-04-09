@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -16,6 +18,10 @@ export default function PromotionBanner() {
   const [currentPromotion, setCurrentPromotion] = useState<Promotion | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  
+  // Default image as base64 to avoid external requests
+  const defaultImageBase64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI0MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDQwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNmZmU0ZjAiLz4KICA8cmVjdCB4PSI0MDAiIHk9IjEwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmZjc2YWQiLz4KICA8dGV4dCB4PSIzMDAiIHk9IjI4MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjQ4IiBmaWxsPSIjNjY2NjY2Ij5LaMO0bmcgdGjhu4MgdOG6o2kgaMOsbmg8L3RleHQ+Cjwvc3ZnPgo=";
 
   useEffect(() => {
     const fetchPromotions = async () => {
@@ -75,10 +81,12 @@ export default function PromotionBanner() {
     <div className="container mx-auto px-4">
       <div className="relative h-[300px] md:h-[400px] rounded-xl overflow-hidden">
         <Image
-          src={currentPromotion.backgroundImage}
+          src={imageError ? defaultImageBase64 : currentPromotion.backgroundImage}
           alt={currentPromotion.title}
           fill
           className="object-cover"
+          onError={() => setImageError(true)}
+          unoptimized={imageError}
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 to-transparent flex items-center">

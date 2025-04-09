@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,14 +14,26 @@ interface TrendingCategory {
 export default function TrendingSection() {
   const [trends, setTrends] = useState<TrendingCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [imageFallbacks, setImageFallbacks] = useState<Record<string, boolean>>({});
+
+  // Default image as base64 to avoid external requests
+  const defaultImageBase64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDQwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjQwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9IiNmOGY4ZjgiLz4KICA8cmVjdCB4PSIxNTAiIHk9IjE1MCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmZjc2YWQiLz4KICA8dGV4dCB4PSIxMjAiIHk9IjI5MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjI0IiBmaWxsPSIjNjY2NjY2Ij5UcmVuZGluZyBTdHlsZTwvdGV4dD4KPC9zdmc+Cg==";
 
   useEffect(() => {
     const fetchTrends = async () => {
       try {
-        const response = await fetch('/api/trends');
+        const response = await fetch('/api/trends', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
         if (!response.ok) {
           throw new Error('Failed to fetch trending data');
         }
+        
         const data = await response.json();
         setTrends(data);
       } catch (error) {
@@ -29,25 +43,25 @@ export default function TrendingSection() {
           {
             id: '1',
             name: 'Thời Trang Mùa Hè',
-            image: '/images/trends/summer-fashion.jpg',
+            image: defaultImageBase64,
             productCount: 24
           },
           {
             id: '2',
             name: 'Phong Cách Vintage',
-            image: '/images/trends/vintage-style.jpg',
+            image: defaultImageBase64,
             productCount: 18
           },
           {
             id: '3',
             name: 'Thời Trang Thể Thao',
-            image: '/images/trends/sports-fashion.jpg',
+            image: defaultImageBase64,
             productCount: 32
           },
           {
             id: '4',
             name: 'Phong Cách Công Sở',
-            image: '/images/trends/office-style.jpg',
+            image: defaultImageBase64,
             productCount: 15
           }
         ]);
@@ -58,6 +72,13 @@ export default function TrendingSection() {
 
     fetchTrends();
   }, []);
+
+  const handleImageError = (trendId: string) => {
+    setImageFallbacks(prev => ({
+      ...prev,
+      [trendId]: true
+    }));
+  };
 
   if (loading) {
     return (
@@ -76,11 +97,13 @@ export default function TrendingSection() {
           <Link key={trend.id} href={`/category/${trend.id}`}>
             <div className="relative h-80 rounded-lg overflow-hidden group">
               <Image
-                src={trend.image}
+                src={imageFallbacks[trend.id] ? defaultImageBase64 : trend.image}
                 alt={trend.name}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
+                onError={() => handleImageError(trend.id)}
+                unoptimized={trend.image.startsWith('data:')}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent">
                 <div className="absolute bottom-0 left-0 p-6 text-white">

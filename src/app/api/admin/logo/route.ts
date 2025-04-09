@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -27,6 +31,12 @@ export async function GET() {
       key: "logo",
       value: logoSettings?.value || "",
       isCircular
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
   } catch (error) {
     console.error("Error fetching logo:", error);
@@ -67,7 +77,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // Lưu URL logo
+    // Validate image URL format
+    if (!imageUrl.startsWith('data:image/')) {
+      return NextResponse.json(
+        { error: "Invalid image format. Only data URLs starting with 'data:image/' are accepted." },
+        { status: 400 }
+      );
+    }
+
+    // Check if the image data is not too large
+    const estimatedSize = imageUrl.length * 0.75; // Rough estimation of base64 size
+    const maxSize = 10 * 1024 * 1024; // 10MB max
+
+    if (estimatedSize > maxSize) {
+      return NextResponse.json(
+        { error: "Image is too large. Please use a smaller image (under 10MB)." },
+        { status: 400 }
+      );
+    }
+
+    // Save logo URL
     await prisma.$executeRaw`
       INSERT INTO "Setting" (key, value, "createdAt", "updatedAt")
       VALUES ('logo', ${imageUrl}, NOW(), NOW())
@@ -75,7 +104,7 @@ export async function POST(request: Request) {
       DO UPDATE SET value = ${imageUrl}, "updatedAt" = NOW();
     `;
     
-    // Lưu thông tin kiểu logo (hình tròn hay không)
+    // Save logo type information (circular or not)
     const logoTypeValue = JSON.stringify({ isCircular });
     await prisma.$executeRaw`
       INSERT INTO "Setting" (key, value, "createdAt", "updatedAt")
@@ -84,10 +113,37 @@ export async function POST(request: Request) {
       DO UPDATE SET value = ${logoTypeValue}, "updatedAt" = NOW();
     `;
 
-    return NextResponse.json({ 
+    // Revalidate paths that use the logo to ensure fresh data
+    revalidatePath("/");
+    revalidatePath("/api/logo");
+    revalidatePath("/api/admin/logo");
+
+    // Define interface for response data
+    interface LogoResponse {
+      key: string;
+      value: string;
+      isCircular: boolean;
+      timestamp?: number;
+    }
+
+    // Create response data without timestamp for data URLs
+    const responseData: LogoResponse = {
       key: "logo", 
       value: imageUrl,
       isCircular
+    };
+
+    // Only add timestamp for non-data URLs
+    if (!imageUrl.startsWith('data:image/')) {
+      responseData.timestamp = Date.now();
+    }
+
+    return NextResponse.json(responseData, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
   } catch (error) {
     console.error("Error updating logo:", error);

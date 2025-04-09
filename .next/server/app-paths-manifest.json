@@ -1,9 +1,11 @@
 {
-  "/not-found": "app/not-found.js",
-  "/(user)/(auth)/login/page": "app/(user)/(auth)/login/page.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/admin/footer/page": "app/admin/footer/page.js",
-  "/admin/settings/page": "app/admin/settings/page.js",
+  "/api/admin/categories/route": "app/api/admin/categories/route.js",
+  "/api/admin/attributes/route": "app/api/admin/attributes/route.js",
+  "/api/trends/route": "app/api/trends/route.js",
+  "/admin/trends/page": "app/admin/trends/page.js",
   "/admin/users/page": "app/admin/users/page.js",
-  "/admin/products/categories/page": "app/admin/products/categories/page.js"
+  "/admin/logo/page": "app/admin/logo/page.js",
+  "/admin/footer/page": "app/admin/footer/page.js",
+  "/admin/products/list/page": "app/admin/products/list/page.js"
 }

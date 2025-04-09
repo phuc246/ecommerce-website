@@ -1,6 +1,9 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatPrice } from '@/lib/utils';
+import { X, Filter, Search } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -25,19 +28,17 @@ interface Attribute {
 
 export default function AdvancedSearch() {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [sizes, setSizes] = useState<Size[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
-  const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(5000000);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 10000000 });
 
   useEffect(() => {
     const fetchFilters = async () => {
@@ -96,46 +97,57 @@ export default function AdvancedSearch() {
       }
     };
 
+    const fetchPriceRange = async () => {
+      try {
+        const response = await fetch('/api/products/price-range');
+        if (response.ok) {
+          const data = await response.json();
+          setPriceRange(data);
+        }
+      } catch (error) {
+        console.error('Error fetching price range:', error);
+      }
+    };
+
     fetchFilters();
+    fetchPriceRange();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const params = new URLSearchParams();
-    if (searchQuery) params.append('q', searchQuery);
-    if (selectedCategory) params.append('category', selectedCategory);
-    if (selectedColors.length) params.append('colors', selectedColors.join(','));
-    if (selectedSizes.length) params.append('sizes', selectedSizes.join(','));
-    if (selectedAttributes.length) params.append('attributes', selectedAttributes.join(','));
-    params.append('minPrice', minPrice.toString());
-    params.append('maxPrice', maxPrice.toString());
-
-    router.push(`/products?${params.toString()}`);
+    
+    if (searchQuery) {
+      params.append('search', searchQuery);
+    }
+    
+    if (selectedCategory) {
+      params.append('category', selectedCategory);
+    }
+    
+    if (minPrice) {
+      params.append('minPrice', minPrice);
+    }
+    
+    if (maxPrice) {
+      params.append('maxPrice', maxPrice);
+    }
+    
+    const queryString = params.toString();
+    router.push(`/products${queryString ? `?${queryString}` : ''}`);
+    
+    // Close sidebar after search on mobile
+    if (window.innerWidth < 768) {
+      setIsOpen(false);
+    }
   };
 
-  const handleColorToggle = (colorId: string) => {
-    setSelectedColors(prev => 
-      prev.includes(colorId)
-        ? prev.filter(id => id !== colorId)
-        : [...prev, colorId]
-    );
-  };
-
-  const handleSizeToggle = (sizeId: string) => {
-    setSelectedSizes(prev => 
-      prev.includes(sizeId)
-        ? prev.filter(id => id !== sizeId)
-        : [...prev, sizeId]
-    );
-  };
-
-  const handleAttributeToggle = (attributeId: string) => {
-    setSelectedAttributes(prev => 
-      prev.includes(attributeId)
-        ? prev.filter(id => id !== attributeId)
-        : [...prev, attributeId]
-    );
+  const handleClear = () => {
+    setSearchQuery('');
+    setSelectedCategory('');
+    setMinPrice('');
+    setMaxPrice('');
   };
 
   if (loading) {
@@ -152,148 +164,132 @@ export default function AdvancedSearch() {
   }
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-6">
-      <form onSubmit={handleSearch}>
-        <div className="mb-6">
-          <input
-            type="text"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Tìm kiếm sản phẩm..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+    <>
+      {/* Toggle button */}
+      <button 
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition-colors md:hidden"
+        aria-label="Open search filters"
+      >
+        <Filter size={18} />
+        <span>Bộ lọc</span>
+      </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {/* Categories */}
-          <div>
-            <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 mb-2">Danh mục</label>
-            <select
-              id="category-select"
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <option value="">Tất cả danh mục</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
 
-          {/* Colors */}
-          <div>
-            <span className="block text-sm font-medium text-gray-700 mb-2">Màu sắc</span>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((color) => (
-                <button
-                  key={color.id}
-                  type="button"
-                  className={`w-8 h-8 rounded-full border-2 ${
-                    selectedColors.includes(color.id) ? 'border-indigo-600 scale-110' : 'border-gray-300'
-                  } transition-all`}
-                  style={{ backgroundColor: color.value }}
-                  onClick={() => handleColorToggle(color.id)}
-                  title={color.name}
-                  aria-label={`Color ${color.name}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Sizes */}
-          <div>
-            <span className="block text-sm font-medium text-gray-700 mb-2">Kích cỡ</span>
-            <div className="flex flex-wrap gap-2">
-              {sizes.map((size) => (
-                <button
-                  key={size.id}
-                  type="button"
-                  className={`px-3 py-1 rounded border ${
-                    selectedSizes.includes(size.id)
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-300'
-                  } transition-colors`}
-                  onClick={() => handleSizeToggle(size.id)}
-                  aria-label={`Size ${size.name}`}
-                >
-                  {size.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Attributes (Fabric types) */}
-          <div>
-            <span className="block text-sm font-medium text-gray-700 mb-2">Loại vải</span>
-            <div className="flex flex-wrap gap-2">
-              {attributes.map((attribute) => (
-                <button
-                  key={attribute.id}
-                  type="button"
-                  className={`px-3 py-1 rounded-full ${
-                    selectedAttributes.includes(attribute.id)
-                      ? 'bg-indigo-100 text-indigo-800 font-medium'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  } transition-colors`}
-                  onClick={() => handleAttributeToggle(attribute.id)}
-                  aria-label={`Fabric ${attribute.name}`}
-                >
-                  {attribute.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Price Range */}
-        <div className="mb-8">
-          <span className="block text-sm font-medium text-gray-700 mb-2">
-            Khoảng giá: {formatPrice(minPrice)} - {formatPrice(maxPrice)}
-          </span>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div>
-              <label htmlFor="min-price" className="block text-xs text-gray-500 mb-1">Giá tối thiểu</label>
-              <input 
-                type="range" 
-                id="min-price"
-                min={0} 
-                max={10000000} 
-                step={100000} 
-                value={minPrice} 
-                onChange={(e) => setMinPrice(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="max-price" className="block text-xs text-gray-500 mb-1">Giá tối đa</label>
-              <input 
-                type="range" 
-                id="max-price"
-                min={0} 
-                max={10000000} 
-                step={100000} 
-                value={maxPrice} 
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center">
+      {/* Sidebar */}
+      <div className={`
+        fixed top-0 bottom-0 left-0 w-80 bg-white z-50 shadow-xl transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:relative md:translate-x-0 md:shadow-none md:z-0 md:w-72
+      `}>
+        <div className="flex items-center justify-between p-4 border-b md:hidden">
+          <h2 className="text-lg font-medium">Tìm kiếm nâng cao</h2>
           <button
-            type="submit"
-            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors w-full md:w-auto"
+            onClick={() => setIsOpen(false)}
+            className="p-1 rounded-full hover:bg-gray-100"
+            aria-label="Close sidebar"
           >
-            Tìm kiếm
+            <X size={20} />
           </button>
         </div>
-      </form>
-    </div>
+
+        <div className="p-4 h-full overflow-y-auto">
+          <h2 className="text-lg font-medium mb-4 hidden md:block">Tìm kiếm nâng cao</h2>
+          
+          <form onSubmit={handleSearch} className="space-y-6">
+            <div>
+              <label htmlFor="search-query" className="block text-sm font-medium text-gray-700 mb-1">
+                Từ khóa
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  id="search-query"
+                  className="w-full p-2 pl-9 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Tìm kiếm sản phẩm..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="category-select" className="block text-sm font-medium text-gray-700 mb-1">
+                Danh mục
+              </label>
+              <select
+                id="category-select"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                <option value="">Tất cả danh mục</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Khoảng giá
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  placeholder="Từ"
+                  min={priceRange.min}
+                  max={priceRange.max}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                />
+                <span>-</span>
+                <input
+                  type="number"
+                  placeholder="Đến"
+                  min={priceRange.min}
+                  max={priceRange.max}
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                />
+              </div>
+              {minPrice && maxPrice && (
+                <p className="mt-1 text-sm text-gray-500">
+                  {formatPrice(Number(minPrice))} - {formatPrice(Number(maxPrice))}
+                </p>
+              )}
+            </div>
+
+            <div className="flex space-x-2">
+              <button
+                type="submit"
+                className="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+              >
+                Tìm kiếm
+              </button>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+              >
+                Xóa
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </>
   );
 } 

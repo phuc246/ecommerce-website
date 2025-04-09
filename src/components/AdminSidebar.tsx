@@ -12,6 +12,7 @@ import {
   ArrowLeftOnRectangleIcon,
   PhotoIcon,
   NewspaperIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -38,6 +39,11 @@ const navigation = [
         href: "/admin/products/attributes",
       },
     ],
+  },
+  {
+    name: "Quản lý xu hướng",
+    href: "/admin/trends",
+    icon: SparklesIcon,
   },
   {
     name: "Quản lý người dùng",

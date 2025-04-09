@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useRef, useEffect } from "react";
 import { Dialog, Transition } from "@headlessui/react";
-import { XMarkIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, TrashIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
 
@@ -26,46 +26,101 @@ interface Attribute {
   name: string;
 }
 
+interface Trend {
+  id: string;
+  name: string;
+}
+
+interface ProductFormData {
+  name: string;
+  description: string;
+  price: number;
+  salePrice?: number; // Optional sale price
+  sku?: string; // Stock keeping unit
+  image: string;
+  images: string[];
+  categoryId: string;
+  stock: number;
+  colors: Color[];
+  sizes: Size[];
+  attributes: string[];
+  trendId?: string;
+}
+
 export default function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [sku, setSku] = useState("");
   const [colors, setColors] = useState<Color[]>([]);
   const [sizes, setSizes] = useState<Size[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [stock, setStock] = useState("");
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
+  const [trends, setTrends] = useState<Trend[]>([]);
+  const [selectedTrend, setSelectedTrend] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const additionalImagesInputRef = useRef<HTMLInputElement>(null);
   const colorFileInputRef = useRef<HTMLInputElement>(null);
   const [currentColorIndex, setCurrentColorIndex] = useState<number>(-1);
+  const [salePriceError, setSalePriceError] = useState("");
+
+  // Common size presets for different product types
+  const clothingSizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+  const shoeSizes = ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45"];
+  const commonSizes = ["S", "M", "L"];
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [categoriesResponse, attributesResponse] = await Promise.all([
-          fetch('/api/admin/categories'),
-          fetch('/api/admin/attributes')
-        ]);
+    if (isOpen) {
+      const fetchData = async () => {
+        try {
+          const [categoriesResponse, attributesResponse, trendsResponse] = await Promise.all([
+            fetch('/api/admin/categories'),
+            fetch('/api/admin/attributes'),
+            fetch('/api/trends')
+          ]);
+  
+          if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
+          if (!attributesResponse.ok) throw new Error('Failed to fetch attributes');
+          if (!trendsResponse.ok) throw new Error('Failed to fetch trends');
+  
+          const categoriesData = await categoriesResponse.json();
+          const attributesData = await attributesResponse.json();
+          const trendsData = await trendsResponse.json();
+  
+          setCategories(categoriesData);
+          setAttributes(attributesData);
+          setTrends(trendsData);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          toast.error('Không thể tải dữ liệu');
+        }
+      };
+  
+      fetchData();
+    }
+  }, [isOpen]);
 
-        if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
-        if (!attributesResponse.ok) throw new Error('Failed to fetch attributes');
-
-        const categoriesData = await categoriesResponse.json();
-        const attributesData = await attributesResponse.json();
-
-        setCategories(categoriesData);
-        setAttributes(attributesData);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Không thể tải dữ liệu');
+  // Kiểm tra giá khuyến mãi phải thấp hơn giá gốc
+  useEffect(() => {
+    if (salePrice && price) {
+      const saleValue = parseFloat(salePrice);
+      const priceValue = parseFloat(price);
+      
+      if (saleValue >= priceValue) {
+        setSalePriceError("Giá khuyến mãi phải thấp hơn giá gốc");
+      } else {
+        setSalePriceError("");
       }
-    };
-
-    fetchData();
-  }, []);
+    } else {
+      setSalePriceError("");
+    }
+  }, [salePrice, price]);
 
   const handleAttributeToggle = (attributeId: string) => {
     setSelectedAttributes(prev => {
@@ -90,6 +145,34 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleAdditionalImagesUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Kiểm tra số lượng ảnh tối đa (6 ảnh phụ + 1 ảnh chính = 7 ảnh)
+    if (additionalImages.length + files.length > 6) {
+      toast.error("Tối đa chỉ được tải lên 6 ảnh phụ");
+      return;
+    }
+
+    Array.from(files).forEach(file => {
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toast.error(`Hình ảnh ${file.name} vượt quá 5MB`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAdditionalImages(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages(prevImages => prevImages.filter((_, i) => i !== index));
   };
 
   const handleColorImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,11 +227,23 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
     setColors(colors.filter((_, i) => i !== index));
   };
 
+  // Add a preset of sizes
+  const handleAddSizePreset = (preset: string[]) => {
+    setSizes(preset.map(name => ({ name })));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name || !description || !price || !selectedImage || !stock || !selectedCategory) {
+    // Kiểm tra các trường bắt buộc
+    if (!name || !price || !selectedImage || !stock || !selectedCategory) {
       toast.error("Vui lòng điền đầy đủ thông tin sản phẩm");
+      return;
+    }
+
+    // Kiểm tra giá khuyến mãi
+    if (salePriceError) {
+      toast.error("Vui lòng sửa lỗi giá khuyến mãi");
       return;
     }
 
@@ -162,23 +257,32 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
       return;
     }
 
+    // Nếu mô tả trống, sử dụng "Đang cập nhật"
+    const finalDescription = description.trim() ? description : "Đang cập nhật";
+
     try {
+      const productData = {
+        name,
+        description: finalDescription,
+        price: parseFloat(price),
+        salePrice: salePrice ? parseFloat(salePrice) : undefined,
+        sku,
+        image: selectedImage,
+        images: additionalImages,
+        colors,
+        sizes,
+        stock: parseInt(stock),
+        categoryId: selectedCategory,
+        attributes: selectedAttributes,
+        trendId: selectedTrend || undefined
+      };
+
       const response = await fetch('/api/admin/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name,
-          description,
-          price: parseFloat(price),
-          image: selectedImage,
-          colors,
-          sizes,
-          stock: parseInt(stock),
-          categoryId: selectedCategory,
-          attributes: selectedAttributes
-        }),
+        body: JSON.stringify(productData),
       });
 
       if (!response.ok) {
@@ -193,12 +297,16 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
       setName("");
       setDescription("");
       setPrice("");
+      setSalePrice("");
+      setSku("");
       setSelectedImage(null);
+      setAdditionalImages([]);
       setColors([]);
       setSizes([]);
       setStock("");
       setSelectedCategory("");
       setSelectedAttributes([]);
+      setSelectedTrend("");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi thêm sản phẩm');
       console.error('Error:', error);
@@ -280,10 +388,10 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                           id="description"
                           name="description"
                           rows={3}
-                          required
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          placeholder="Nhập mô tả sản phẩm hoặc để trống để hiển thị 'Đang cập nhật'"
                         />
                       </div>
                     </div>
@@ -292,7 +400,7 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                       <label htmlFor="price" className="block text-sm font-medium text-gray-700">
                         Giá
                       </label>
-                      <div className="mt-1">
+                      <div className="mt-1 relative">
                         <input
                           type="number"
                           name="price"
@@ -301,7 +409,52 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                           min="0"
                           value={price}
                           onChange={(e) => setPrice(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm pr-12"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <span className="text-gray-500 sm:text-sm">VND</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="salePrice" className="block text-sm font-medium text-gray-700">
+                        Giá khuyến mãi (để trống nếu không có)
+                      </label>
+                      <div className="mt-1 relative">
+                        <input
+                          type="number"
+                          name="salePrice"
+                          id="salePrice"
+                          min="0"
+                          value={salePrice}
+                          onChange={(e) => setSalePrice(e.target.value)}
+                          className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm pr-12 ${
+                            salePriceError ? 'border-red-500' : ''
+                          }`}
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <span className="text-gray-500 sm:text-sm">VND</span>
+                        </div>
+                      </div>
+                      {salePriceError && (
+                        <p className="mt-1 text-sm text-red-500">{salePriceError}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="sku" className="block text-sm font-medium text-gray-700">
+                        Mã sản phẩm (SKU)
+                      </label>
+                      <div className="mt-1">
+                        <input
+                          type="text"
+                          name="sku"
+                          id="sku"
+                          value={sku}
+                          onChange={(e) => setSku(e.target.value)}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          placeholder="VD: SP001"
                         />
                       </div>
                     </div>
@@ -346,8 +499,28 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                     </div>
 
                     <div className="sm:col-span-2">
+                      <label htmlFor="trend" className="block text-sm font-medium text-gray-700">
+                        Xu hướng thời trang
+                      </label>
+                      <select
+                        id="trend"
+                        name="trend"
+                        value={selectedTrend}
+                        onChange={(e) => setSelectedTrend(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      >
+                        <option value="">Không thuộc xu hướng nào</option>
+                        {trends.map((trend) => (
+                          <option key={trend.id} value={trend.id}>
+                            {trend.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        Hình ảnh sản phẩm
+                        Hình ảnh sản phẩm chính
                       </label>
                       <div className="mt-1 flex items-center space-x-4">
                         <div
@@ -381,6 +554,57 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                           onChange={handleImageUpload}
                           title="Chọn ảnh sản phẩm"
                         />
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Hình ảnh sản phẩm bổ sung (tối đa 6 ảnh)
+                      </label>
+                      <div className="mt-1">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-2">
+                          {additionalImages.map((image, index) => (
+                            <div key={index} className="relative group">
+                              <div className="h-20 w-20 overflow-hidden rounded-md border border-gray-300">
+                                <Image
+                                  src={image}
+                                  alt={`Product image ${index + 1}`}
+                                  width={80}
+                                  height={80}
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeAdditionalImage(index)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Xóa ảnh"
+                              >
+                                <XMarkIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                          {additionalImages.length < 6 && (
+                            <div 
+                              className="h-20 w-20 flex items-center justify-center rounded-md border-2 border-dashed border-gray-300 hover:border-indigo-500 cursor-pointer"
+                              onClick={() => additionalImagesInputRef.current?.click()}
+                            >
+                              <PhotoIcon className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          ref={additionalImagesInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          multiple
+                          onChange={handleAdditionalImagesUpload}
+                          title="Chọn ảnh bổ sung"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Tải lên thêm tối đa 6 ảnh chi tiết về sản phẩm
+                        </p>
                       </div>
                     </div>
 
@@ -461,26 +685,63 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                         <label className="block text-sm font-medium text-gray-700">
                           Kích thước
                         </label>
-                        <button
-                          type="button"
-                          onClick={handleSizeAdd}
-                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-                        >
-                          Thêm kích thước
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleAddSizePreset(commonSizes)}
+                            className="inline-flex items-center px-2 py-1 text-xs border border-transparent font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200"
+                          >
+                            Thêm S/M/L
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAddSizePreset(clothingSizes)}
+                            className="inline-flex items-center px-2 py-1 text-xs border border-transparent font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
+                          >
+                            Áo quần
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAddSizePreset(shoeSizes)}
+                            className="inline-flex items-center px-2 py-1 text-xs border border-transparent font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200"
+                          >
+                            Giày
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSizeAdd}
+                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                          >
+                            Thêm
+                          </button>
+                        </div>
                       </div>
-                      <div className="mt-2 space-y-4">
-                        {sizes.map((size, index) => (
-                          <div key={index} className="flex items-center">
-                            <input
-                              type="text"
-                              placeholder="Kích thước (VD: S, M, L, XL)"
-                              value={size.name}
-                              onChange={(e) => handleSizeChange(index, e.target.value)}
-                              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            />
-                          </div>
-                        ))}
+                      <div className="mt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {sizes.map((size, index) => (
+                            <div key={index} className="flex items-center gap-1 bg-gray-100 p-1 rounded">
+                              <input
+                                type="text"
+                                placeholder="Size"
+                                value={size.name}
+                                onChange={(e) => handleSizeChange(index, e.target.value)}
+                                className="block w-16 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSizes = [...sizes];
+                                  newSizes.splice(index, 1);
+                                  setSizes(newSizes);
+                                }}
+                                className="text-red-600 hover:text-red-800"
+                                aria-label="Remove size"
+                              >
+                                <XMarkIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
 

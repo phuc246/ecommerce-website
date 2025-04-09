@@ -22,12 +22,23 @@ interface ProductFormData {
   stock: number;
 }
 
+interface Product {
+  trends?: Array<{
+    id: string;
+    name: string;
+  }>;
+}
+
 export default function EditProduct() {
   const router = useRouter();
   const params = useParams();
   const isNew = params.id === 'new';
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [attributes, setAttributes] = useState([]);
+  const [trends, setTrends] = useState<{id: string; name: string}[]>([]);
+  const [selectedTrends, setSelectedTrends] = useState<string[]>([]);
+  const [product, setProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
@@ -38,17 +49,59 @@ export default function EditProduct() {
   });
 
   useEffect(() => {
-    // Fetch categories
-    fetch('/api/categories')
-      .then((res) => res.json())
-      .then((data) => setCategories(data));
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch product data
+        const productResponse = await fetch(`/api/admin/products/${params.id}`);
+        
+        if (!productResponse.ok) {
+          throw new Error('Failed to fetch product');
+        }
+        
+        const productData = await productResponse.json();
+        setProduct(productData);
+        
+        // Fetch categories and attributes
+        const [categoriesResponse, attributesResponse, trendsResponse] = await Promise.all([
+          fetch('/api/admin/categories'),
+          fetch('/api/admin/attributes'),
+          fetch('/api/trends')
+        ]);
+        
+        if (!categoriesResponse.ok) throw new Error('Failed to fetch categories');
+        if (!attributesResponse.ok) throw new Error('Failed to fetch attributes');
+        if (!trendsResponse.ok) throw new Error('Failed to fetch trends');
+        
+        const categoriesData = await categoriesResponse.json();
+        const attributesData = await attributesResponse.json();
+        const trendsData = await trendsResponse.json();
+        
+        setCategories(categoriesData);
+        setAttributes(attributesData);
+        setTrends(trendsData);
+        
+        // Fetch product data if editing
+        if (!isNew) {
+          fetch(`/api/products/${params.id}`)
+            .then((res) => res.json())
+            .then((data) => setFormData(data));
+        }
+        
+        // Cài đặt cho selected trends
+        if (productData.trends) {
+          setSelectedTrends(productData.trends.map(trend => trend.id));
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        toast.error('Failed to load product data');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Fetch product data if editing
-    if (!isNew) {
-      fetch(`/api/products/${params.id}`)
-        .then((res) => res.json())
-        .then((data) => setFormData(data));
-    }
+    fetchData();
   }, [isNew, params.id]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -63,7 +116,10 @@ export default function EditProduct() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            trends: selectedTrends
+          }),
         }
       );
 
@@ -88,6 +144,16 @@ export default function EditProduct() {
       ...prev,
       [name]: name === 'price' || name === 'stock' ? Number(value) : value,
     }));
+  };
+
+  const handleTrendToggle = (trendId: string) => {
+    setSelectedTrends(prev => {
+      if (prev.includes(trendId)) {
+        return prev.filter(id => id !== trendId);
+      } else {
+        return [...prev, trendId];
+      }
+    });
   };
 
   return (
@@ -168,6 +234,31 @@ export default function EditProduct() {
               onChange={handleChange}
               required
             />
+
+            <div className="mt-4">
+              <h3 className="font-medium text-gray-900 mb-2">Fashion Trends</h3>
+              <div className="border border-gray-300 rounded-md p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {trends.map((trend) => (
+                    <div key={trend.id} className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id={`trend-${trend.id}`}
+                        checked={selectedTrends.includes(trend.id)}
+                        onChange={() => handleTrendToggle(trend.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 mt-1"
+                      />
+                      <label htmlFor={`trend-${trend.id}`} className="ml-2 block text-sm text-gray-900">
+                        {trend.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                {trends.length === 0 && (
+                  <p className="text-sm text-gray-500">No trends available. Please add some trends first.</p>
+                )}
+              </div>
+            </div>
 
             <div className="flex justify-end space-x-4">
               <Button

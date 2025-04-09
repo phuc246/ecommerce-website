@@ -10,8 +10,10 @@ import Image from "next/image";
 interface Category {
   id: string;
   name: string;
-  image: string | null;
-  productCount: number;
+  parentId: string | null;
+  parent?: Category;
+  subcategories?: Category[];
+  createdAt: string;
 }
 
 export default function CategoriesPage() {
@@ -28,6 +30,7 @@ export default function CategoriesPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [parentCategory, setParentCategory] = useState<string>('');
 
   // Check if user is admin
   useEffect(() => {
@@ -109,6 +112,7 @@ export default function CategoriesPage() {
         image: category.image || "",
       });
       setImagePreview(category.image);
+      setParentCategory(category.parentId || '');
     } else {
       setEditingCategory(null);
       setFormData({
@@ -116,6 +120,7 @@ export default function CategoriesPage() {
         image: "",
       });
       setImagePreview(null);
+      setParentCategory('');
     }
     setIsModalOpen(true);
   };
@@ -129,30 +134,49 @@ export default function CategoriesPage() {
       image: "",
     });
     setImagePreview(null);
+    setParentCategory('');
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
+    if (!formData.name) {
+      toast.error('Name is required');
+      return;
+    }
 
     try {
-      const response = await fetch(
-        editingCategory
-          ? `/api/categories?id=${editingCategory.id}`
-          : "/api/categories",
-        {
-          method: editingCategory ? "PUT" : "POST",
+      setSubmitting(true);
+      
+      // Prepare the data
+      const categoryData = {
+        name: formData.name,
+        parentId: parentCategory || null
+      };
+
+      let response;
+      if (editingCategory) {
+        // Update existing category
+        response = await fetch(`/api/categories?id=${editingCategory.id}`, {
+          method: 'PUT',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
-        }
-      );
+          body: JSON.stringify(categoryData),
+        });
+      } else {
+        // Create new category
+        response = await fetch('/api/categories', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(categoryData),
+        });
+      }
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Có lỗi xảy ra");
+        throw new Error(`Failed to ${editingCategory ? 'update' : 'create'} category`);
       }
 
       const newCategory = await response.json();
@@ -171,8 +195,8 @@ export default function CategoriesPage() {
 
       closeModal();
     } catch (error) {
-      console.error("Error submitting category:", error);
-      toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra");
+      console.error(`Error ${editingCategory ? 'updating' : 'creating'} category:`, error);
+      toast.error(`Failed to ${editingCategory ? 'update' : 'create'} category`);
     } finally {
       setSubmitting(false);
     }
@@ -228,100 +252,53 @@ export default function CategoriesPage() {
       </div>
 
       <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {categories.length > 0 ? (
-            categories.map((category) => (
-              <li key={category.id}>
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      {category.image ? (
-                        <div className="h-12 w-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                          <Image
-                            src={category.image}
-                            alt={category.name}
-                            width={48}
-                            height={48}
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                          <span className="text-gray-500 text-lg">
-                            {category.name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="ml-4">
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {category.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {category.productCount} sản phẩm
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        type="button"
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        onClick={() => openModal(category)}
-                      >
-                        <PencilIcon className="-ml-1 mr-1 h-4 w-4" aria-hidden="true" />
-                        Sửa
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        onClick={() => handleDelete(category.id)}
-                        disabled={category.productCount > 0}
-                        title={
-                          category.productCount > 0
-                            ? "Không thể xóa danh mục có sản phẩm"
-                            : "Xóa danh mục"
-                        }
-                      >
-                        <TrashIcon className="-ml-1 mr-1 h-4 w-4 text-red-500" aria-hidden="true" />
-                        Xóa
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))
-          ) : (
-            <li className="px-4 py-12 text-center">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">Chưa có danh mục nào</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Bắt đầu bằng cách tạo danh mục đầu tiên cho cửa hàng của bạn.
-              </p>
-              <div className="mt-6">
-                <button
-                  type="button"
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  onClick={() => openModal()}
-                >
-                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                  Thêm danh mục
-                </button>
-              </div>
-            </li>
-          )}
-        </ul>
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Category Name
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Parent Category
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Created At
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {categories.map((category) => (
+              <tr key={category.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {category.name}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {category.parent?.name || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(category.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <button
+                    onClick={() => openModal(category)}
+                    className="text-indigo-600 hover:text-indigo-900 mr-4"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(category.id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Modal */}
@@ -362,9 +339,26 @@ export default function CategoriesPage() {
                 />
               </div>
               <div className="mb-4">
-                <label htmlFor="image" className="block text-sm font-medium text-gray-700">
-                  Hình ảnh (tùy chọn)
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Parent Category (Optional)
                 </label>
+                <select
+                  value={parentCategory}
+                  onChange={(e) => setParentCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  aria-label="Select parent category"
+                >
+                  <option value="">None (Top Level Category)</option>
+                  {categories.map((category) => (
+                    category.id !== editingCategory?.id && (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    )
+                  ))}
+                </select>
+              </div>
+              <div className="mb-4">
                 <div className="mt-1 flex items-center">
                   {imagePreview ? (
                     <div className="relative h-32 w-32 rounded-lg overflow-hidden bg-gray-100 mr-4">

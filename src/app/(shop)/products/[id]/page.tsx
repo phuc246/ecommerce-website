@@ -25,6 +25,8 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  salePrice?: number;
+  sku?: string;
   stock: number;
   image: string;
   category: {
@@ -184,24 +186,62 @@ export default function ProductDetail() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="lg:grid lg:grid-cols-2 lg:gap-12">
-          {/* Product image */}
-          <div 
-            ref={imageRef}
-            className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100" 
-            style={imageStyle}
-          >
-            <Image
-              src={getSelectedColorObject()?.image || product.image}
-              alt={product.name}
-              fill
-              priority
-              className="object-cover object-center transition-transform duration-500 hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="absolute top-4 right-4">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Còn hàng
-              </span>
+          {/* Product image with thumbnails */}
+          <div className="space-y-4">
+            <div 
+              ref={imageRef}
+              className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100" 
+              style={imageStyle}
+            >
+              <Image
+                src={getSelectedColorObject()?.image || product.image}
+                alt={product.name}
+                fill
+                priority
+                className="object-cover object-center transition-transform duration-500 hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              {product.salePrice && (
+                <div className="absolute top-4 left-4">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    Giảm {Math.round(((product.price - product.salePrice) / product.price) * 100)}%
+                  </span>
+                </div>
+              )}
+              <div className="absolute top-4 right-4">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Còn hàng
+                </span>
+              </div>
+            </div>
+            
+            {/* Thumbnails */}
+            <div className="flex items-center space-x-2 overflow-x-auto">
+              <div 
+                className={`relative w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 ${!selectedColor ? 'border-indigo-500' : 'border-transparent'}`}
+                onClick={() => setSelectedColor(null)}
+              >
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              {product.colors.map(color => (
+                <div 
+                  key={color.id}
+                  className={`relative w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 ${selectedColor === color.id ? 'border-indigo-500' : 'border-transparent'}`}
+                  onClick={() => setSelectedColor(color.id)}
+                >
+                  <Image
+                    src={color.image || product.image}
+                    alt={`${product.name} - ${color.name}`}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -213,13 +253,38 @@ export default function ProductDetail() {
           >
             <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
             
-            <div className="mt-4">
-              <p className="text-3xl font-bold text-gray-900">
-                {new Intl.NumberFormat("vi-VN", {
-                  style: "currency",
-                  currency: "VND",
-                }).format(product.price)}
+            {/* SKU */}
+            {product.sku && (
+              <p className="mt-2 text-sm text-gray-500">
+                Mã sản phẩm: {product.sku}
               </p>
+            )}
+            
+            {/* Price */}
+            <div className="mt-4">
+              {product.salePrice ? (
+                <div className="flex items-center">
+                  <p className="text-3xl font-bold text-indigo-600">
+                    {new Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                    }).format(product.salePrice)}
+                  </p>
+                  <p className="ml-3 text-lg text-gray-500 line-through">
+                    {new Intl.NumberFormat("vi-VN", {
+                      style: "currency",
+                      currency: "VND",
+                    }).format(product.price)}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-3xl font-bold text-gray-900">
+                  {new Intl.NumberFormat("vi-VN", {
+                    style: "currency",
+                    currency: "VND",
+                  }).format(product.price)}
+                </p>
+              )}
             </div>
 
             <div className="mt-6">

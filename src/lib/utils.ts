@@ -11,12 +11,12 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format a price to VND currency
  */
-export function formatPrice(price: number) {
+export const formatPrice = (price: number): string => {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
   }).format(price);
-}
+};
 
 export function formatDate(date: Date) {
   return new Date(date).toLocaleDateString('en-US', {

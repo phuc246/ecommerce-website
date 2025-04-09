@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParallax } from "@/hooks/useParallax";
 import { useCategoryScroll } from "@/hooks/useCategoryScroll";
 import { ShoppingBagIcon, HeartIcon } from "@heroicons/react/24/outline";
+import AdvancedSearch from "@/components/home/AdvancedSearch";
 
 interface Category {
   id: string;
@@ -59,7 +60,7 @@ export default function ProductList() {
 
     const fetchProducts = async () => {
       try {
-        const response = await fetch("/api/products");
+        const response = await fetch("/api/products/shop");
         if (!response.ok) throw new Error("Failed to fetch products");
         const data = await response.json();
         const productList = Array.isArray(data) ? data : data.products || [];
@@ -187,107 +188,116 @@ export default function ProductList() {
         </div>
       </div>
 
-      {/* Filter results count */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
-        <p className="text-sm text-gray-500">
-          {selectedCategory 
-            ? `Hiển thị ${filteredProducts.length} sản phẩm trong ${categories.find(c => c.id === selectedCategory)?.name || 'danh mục'}`
-            : `Hiển thị tất cả ${filteredProducts.length} sản phẩm`}
-        </p>
-      </div>
+      {/* Main content area */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+        {/* Flex container for sidebar and products */}
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Advanced Search Sidebar */}
+          <div className="md:w-1/4 lg:w-1/5">
+            <AdvancedSearch />
+          </div>
 
-      {/* Products grid with parallax */}
-      <div
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16"
-        style={parallaxProducts}
-      >
-        {filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="group relative">
-                {/* Product card */}
-                <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                  {/* Product image with overlay */}
-                  <div className="relative aspect-square overflow-hidden">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover object-center transition-transform duration-700 group-hover:scale-110"
-                    />
-                    
-                    {/* Category tag */}
-                    <div className="absolute top-4 left-4">
-                      <span className="inline-block bg-white/80 px-3 py-1 rounded-full text-xs font-medium text-gray-700">
-                        {product.category.name}
-                      </span>
-                    </div>
-                    
-                    {/* Quick action buttons */}
-                    <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <div className="flex flex-col sm:flex-row gap-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                        <Link
-                          href={`/products/${product.id}`}
-                          className="bg-white text-gray-800 hover:bg-indigo-50 px-4 py-2 rounded-full shadow-md font-medium text-sm flex items-center"
-                        >
-                          Xem chi tiết
-                        </Link>
-                        <button 
-                          className="bg-indigo-600 text-white hover:bg-indigo-700 p-2 rounded-full shadow-md flex items-center justify-center"
-                          aria-label="Thêm vào giỏ hàng"
-                          title="Thêm vào giỏ hàng"
-                        >
-                          <ShoppingBagIcon className="h-5 w-5" />
-                        </button>
-                        <button 
-                          className="bg-white text-gray-800 hover:bg-pink-50 hover:text-pink-500 p-2 rounded-full shadow-md flex items-center justify-center"
-                          aria-label="Thêm vào yêu thích"
-                          title="Thêm vào yêu thích"
-                        >
-                          <HeartIcon className="h-5 w-5" />
-                        </button>
+          {/* Products Grid with filter count and parallax */}
+          <div className="md:w-3/4 lg:w-4/5">
+            {/* Filter results count */}
+            <p className="text-sm text-gray-500 mb-6">
+              {selectedCategory 
+                ? `Hiển thị ${filteredProducts.length} sản phẩm trong ${categories.find(c => c.id === selectedCategory)?.name || 'danh mục'}`
+                : `Hiển thị tất cả ${filteredProducts.length} sản phẩm`}
+            </p>
+
+            {/* Products grid */}
+            <div style={parallaxProducts}>
+              {filteredProducts.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="group relative">
+                      {/* Product card */}
+                      <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                        {/* Product image with overlay */}
+                        <div className="relative aspect-square overflow-hidden">
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                          />
+                          
+                          {/* Category tag */}
+                          <div className="absolute top-4 left-4">
+                            <span className="inline-block bg-white/80 px-3 py-1 rounded-full text-xs font-medium text-gray-700">
+                              {product.category.name}
+                            </span>
+                          </div>
+                          
+                          {/* Quick action buttons */}
+                          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <div className="flex flex-col sm:flex-row gap-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                              <Link
+                                href={`/products/${product.id}`}
+                                className="bg-white text-gray-800 hover:bg-indigo-50 px-4 py-2 rounded-full shadow-md font-medium text-sm flex items-center"
+                              >
+                                Xem chi tiết
+                              </Link>
+                              <button 
+                                className="bg-indigo-600 text-white hover:bg-indigo-700 p-2 rounded-full shadow-md flex items-center justify-center"
+                                aria-label="Thêm vào giỏ hàng"
+                                title="Thêm vào giỏ hàng"
+                              >
+                                <ShoppingBagIcon className="h-5 w-5" />
+                              </button>
+                              <button 
+                                className="bg-white text-gray-800 hover:bg-pink-50 hover:text-pink-500 p-2 rounded-full shadow-md flex items-center justify-center"
+                                aria-label="Thêm vào yêu thích"
+                                title="Thêm vào yêu thích"
+                              >
+                                <HeartIcon className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Product info */}
+                        <div className="p-4 flex-grow flex flex-col">
+                          <Link href={`/products/${product.id}`} className="flex-grow">
+                            <h3 className="text-lg font-medium text-gray-900 group-hover:text-indigo-600 transition-colors duration-300 line-clamp-2">
+                              {product.name}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-500 line-clamp-2">{product.description}</p>
+                          </Link>
+                          <div className="mt-3 flex items-center justify-between">
+                            <p className="text-lg font-semibold text-gray-900">
+                              {new Intl.NumberFormat("vi-VN", {
+                                style: "currency",
+                                currency: "VND",
+                              }).format(product.price)}
+                            </p>
+                            <Link
+                              href={`/products/${product.id}`}
+                              className="text-indigo-600 text-sm font-medium hover:text-indigo-800 transition-colors"
+                            >
+                              Chi tiết
+                            </Link>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Product info */}
-                  <div className="p-4 flex-grow flex flex-col">
-                    <Link href={`/products/${product.id}`} className="flex-grow">
-                      <h3 className="text-lg font-medium text-gray-900 group-hover:text-indigo-600 transition-colors duration-300 line-clamp-2">
-                        {product.name}
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500 line-clamp-2">{product.description}</p>
-                    </Link>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-lg font-semibold text-gray-900">
-                        {new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(product.price)}
-                      </p>
-                      <Link
-                        href={`/products/${product.id}`}
-                        className="text-indigo-600 text-sm font-medium hover:text-indigo-800 transition-colors"
-                      >
-                        Chi tiết
-                      </Link>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+              ) : (
+                <div className="text-center py-12">
+                  <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 7h16M4 11h16M4 15h10" />
+                  </svg>
+                  <h3 className="mt-2 text-lg font-medium text-gray-900">Không tìm thấy sản phẩm</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Không có sản phẩm nào trong danh mục này. Vui lòng chọn danh mục khác.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 7h16M4 11h16M4 15h10" />
-            </svg>
-            <h3 className="mt-2 text-lg font-medium text-gray-900">Không tìm thấy sản phẩm</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Không có sản phẩm nào trong danh mục này. Vui lòng chọn danh mục khác.
-            </p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

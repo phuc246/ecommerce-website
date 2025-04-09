@@ -1,52 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const result = await signIn("credentials", {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error("Email hoặc mật khẩu không đúng");
-        return;
-      }
-
-      // Fetch session to check user role
-      const response = await fetch("/api/auth/session");
-      const session = await response.json();
-
-      toast.success("Đăng nhập thành công");
-      
-      // Redirect based on user role
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === "authenticated") {
+      console.log("User is authenticated:", session?.user);
       if (session?.user?.role === "ADMIN") {
         router.push("/admin");
       } else {
         router.push("/");
       }
+    }
+  }, [status, session, router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      console.log("Attempting login with:", formData.email);
+      
+      const result = await signIn("credentials", {
+        redirect: false,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      console.log("Login result:", result);
+
+      if (result?.error) {
+        console.error("Login error:", result.error);
+        toast.error(result.error || "Đăng nhập thất bại");
+        setIsLoading(false);
+        return;
+      }
+
+      // Login successful - show toast
+      toast.success("Đăng nhập thành công");
+      
+      // Get session to check user role and redirect accordingly
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Đăng nhập thất bại");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -59,9 +69,18 @@ export default function LoginPage() {
     }));
   };
 
+  // If already authenticated, show loading
+  if (status === "loading" || status === "authenticated") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
         <div>
           <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Đăng nhập
