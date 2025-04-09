@@ -13,8 +13,8 @@ export async function GET() {
 
     const categories = await prisma.category.findMany({
       orderBy: {
-        createdAt: 'desc',
-      },
+        name: 'asc'
+      }
     });
 
     return NextResponse.json(categories);

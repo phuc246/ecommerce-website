@@ -12,41 +12,37 @@ export default function Navbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const { items } = useCart();
-  const [logoUrl, setLogoUrl] = useState("/images/logo.png");
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [isDefaultLogo, setIsDefaultLogo] = useState(true);
-  const [isCircularLogo, setIsCircularLogo] = useState(true);
+  const [logo, setLogo] = useState({
+    url: "/images/default-logo.png",
+    isCircular: true,
+    isLoading: true
+  });
 
   useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const response = await fetch("/api/logo", {
+          cache: 'no-store'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setLogo(prev => ({
+          url: data.url || prev.url,
+          isCircular: data.isCircular,
+          isLoading: false
+        }));
+      } catch (error) {
+        console.error("Error fetching logo:", error);
+        setLogo(prev => ({ ...prev, isLoading: false }));
+      }
+    };
+
     fetchLogo();
   }, []);
-
-  const fetchLogo = async () => {
-    try {
-      const response = await fetch("/api/logo");
-      if (!response.ok) throw new Error("Failed to fetch logo");
-      const data = await response.json();
-      if (data && data.url) {
-        setLogoUrl(data.url);
-        setIsDefaultLogo(data.isDefault || false);
-        setIsCircularLogo(data.isCircular !== undefined ? data.isCircular : true);
-      }
-    } catch (error) {
-      console.error("Không thể tải logo:", error);
-      setHasError(true);
-      setIsDefaultLogo(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleImageError = () => {
-    console.log("Lỗi khi tải hình ảnh logo");
-    setHasError(true);
-    setLogoUrl("/images/logo.png");
-    setIsDefaultLogo(true);
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white shadow-md">
@@ -55,7 +51,27 @@ export default function Navbar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center">
-                <span className="text-xl font-bold">e-commerce</span>
+                <div className={`relative w-12 h-12 flex items-center justify-center ${
+                  logo.isCircular ? 'rounded-full overflow-hidden' : ''
+                }`}>
+                  <Image
+                    src={logo.url}
+                    alt="Logo"
+                    width={48}
+                    height={48}
+                    className={`transition-opacity duration-300 ${
+                      logo.isLoading ? 'opacity-0' : 'opacity-100'
+                    } ${logo.isCircular ? 'rounded-full' : ''}`}
+                    style={{ objectFit: logo.isCircular ? 'cover' : 'contain' }}
+                    priority
+                    onError={() => {
+                      setLogo(prev => ({
+                        ...prev,
+                        url: "/images/default-logo.png"
+                      }));
+                    }}
+                  />
+                </div>
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
@@ -83,20 +99,6 @@ export default function Navbar() {
           </div>
           <div className="flex items-center">
             <div className="flex items-center">
-              {!hasError && !isDefaultLogo && (
-                <div className={`relative w-10 h-10 mr-4 ${isCircularLogo ? 'rounded-full overflow-hidden' : ''}`}>
-                  <Image
-                    src={logoUrl}
-                    alt="Logo"
-                    fill
-                    className={isCircularLogo ? 'rounded-full' : ''}
-                    style={{ objectFit: isCircularLogo ? 'cover' : 'contain' }}
-                    onError={handleImageError}
-                    sizes="40px"
-                    priority
-                  />
-                </div>
-              )}
               <Link
                 href="/cart"
                 className="relative p-2 text-gray-500 hover:text-gray-700"

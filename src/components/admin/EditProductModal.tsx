@@ -6,9 +6,36 @@ import { XMarkIcon, TrashIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
 
-interface AddProductModalProps {
+interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
+  product: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    image: string;
+    stock: number;
+    categoryId: string;
+    category: {
+      id: string;
+      name: string;
+    };
+    colors: Array<{
+      id: string;
+      name: string;
+      value: string;
+      image: string | null;
+    }>;
+    sizes: Array<{
+      id: string;
+      name: string;
+    }>;
+    attributes: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
 }
 
 interface Color {
@@ -26,18 +53,30 @@ interface Attribute {
   name: string;
 }
 
-export default function AddProductModal({ isOpen, onClose }: AddProductModalProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [colors, setColors] = useState<Color[]>([]);
-  const [sizes, setSizes] = useState<Size[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [stock, setStock] = useState("");
+export default function EditProductModal({ isOpen, onClose, product }: EditProductModalProps) {
+  const [name, setName] = useState(product.name);
+  const [description, setDescription] = useState(product.description);
+  const [price, setPrice] = useState(product.price.toString());
+  const [colors, setColors] = useState<Color[]>(
+    product.colors.map(c => ({
+      name: c.name,
+      value: c.value,
+      image: c.image
+    }))
+  );
+  const [sizes, setSizes] = useState<Size[]>(
+    product.sizes.map(s => ({
+      name: s.name
+    }))
+  );
+  const [selectedImage, setSelectedImage] = useState<string>(product.image);
+  const [stock, setStock] = useState(product.stock.toString());
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(product.categoryId);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [selectedAttributes, setSelectedAttributes] = useState<string[]>([]);
+  const [selectedAttributes, setSelectedAttributes] = useState<string[]>(
+    product.attributes.map(a => a.id)
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const colorFileInputRef = useRef<HTMLInputElement>(null);
   const [currentColorIndex, setCurrentColorIndex] = useState<number>(-1);
@@ -163,12 +202,13 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
     }
 
     try {
-      const response = await fetch('/api/admin/products', {
-        method: 'POST',
+      const response = await fetch(`/api/admin/products`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          id: product.id,
           name,
           description,
           price: parseFloat(price),
@@ -183,24 +223,13 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Lỗi khi thêm sản phẩm');
+        throw new Error(error.error || 'Lỗi khi cập nhật sản phẩm');
       }
 
-      toast.success('Thêm sản phẩm thành công');
+      toast.success('Cập nhật sản phẩm thành công');
       onClose();
-      
-      // Reset form
-      setName("");
-      setDescription("");
-      setPrice("");
-      setSelectedImage(null);
-      setColors([]);
-      setSizes([]);
-      setStock("");
-      setSelectedCategory("");
-      setSelectedAttributes([]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi thêm sản phẩm');
+      toast.error(error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật sản phẩm');
       console.error('Error:', error);
     }
   };
@@ -246,10 +275,10 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium leading-6 text-gray-900">
-                      Thêm sản phẩm mới
+                      Chỉnh sửa sản phẩm
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      Điền thông tin sản phẩm bên dưới
+                      Cập nhật thông tin sản phẩm bên dưới
                     </p>
                   </div>
 
@@ -516,7 +545,7 @@ export default function AddProductModal({ isOpen, onClose }: AddProductModalProp
                       type="submit"
                       className="inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:col-start-2 sm:text-sm"
                     >
-                      Thêm sản phẩm
+                      Cập nhật
                     </button>
                     <button
                       type="button"

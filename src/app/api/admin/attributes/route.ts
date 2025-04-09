@@ -13,8 +13,8 @@ export async function GET() {
 
     const attributes = await prisma.attribute.findMany({
       orderBy: {
-        createdAt: 'desc',
-      },
+        name: 'asc'
+      }
     });
 
     return NextResponse.json(attributes);
