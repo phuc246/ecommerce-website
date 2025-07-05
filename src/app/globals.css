@@ -1,0 +1,524 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes spin-slow {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 6s linear infinite;
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+  }
+  .btn-outline {
+    @apply border border-gray-300 hover:bg-gray-100;
+  }
+  .input {
+    @apply block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
+  }
+  .card {
+    @apply bg-white rounded-xl shadow-md overflow-hidden;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+/* Custom logo rotation animation */
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.logo-spin {
+  animation: logo-spin 8s linear infinite;
+  transform-origin: center center;
+}
+
+/* Removing the absolute positioned logo container */
+/* .logo-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: auto;
+  z-index: 10;
+} */
+
+/* Remove shadow from video background */
+.video-background {
+  box-shadow: none !important;
+}
+.video-overlay {
+  background: rgba(0, 0, 0, 0.1) !important; /* Reduced overlay opacity */
+}
+
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 6s linear infinite;
+}
+
+/* Parallax styles */
+.parallax-element {
+  transform-style: preserve-3d;
+  will-change: transform;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Đảm bảo các đối tượng nhỏ luôn trên cùng */
+.parallax-element[data-in-view="true"] {
+  z-index: var(--parallax-z-index, 1);
+}
+
+/* Smooth scrolling cho toàn bộ trang */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Tối ưu performance cho parallax */
+.parallax-element {
+  contain: layout style paint;
+}
+
+/* Floating elements với blur effect */
+.parallax-element .floating-element {
+  filter: blur(2px);
+  transition: filter 0.3s ease;
+}
+
+.parallax-element:hover .floating-element {
+  filter: blur(1px);
+}
+
+/* Animation cho marquee */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Z-index hierarchy cho parallax elements */
+.parallax-element[style*="z-index: 50"] {
+  z-index: 50 !important;
+}
+
+.parallax-element[style*="z-index: 40"] {
+  z-index: 40 !important;
+}
+
+.parallax-element[style*="z-index: 30"] {
+  z-index: 30 !important;
+}
+
+.parallax-element[style*="z-index: 20"] {
+  z-index: 20 !important;
+}
+
+.parallax-element[style*="z-index: 10"] {
+  z-index: 10 !important;
+}
+
+/* Đảm bảo floating buttons luôn trên cùng */
+.fixed {
+  z-index: 9999 !important;
+}
+
+/* Tối ưu cho mobile */
+@media (max-width: 768px) {
+  .parallax-element {
+    transform: none !important;
+  }
+  
+  /* Disable parallax trên mobile để tăng performance */
+  .parallax-element[data-mobile-disable="true"] {
+    transform: none !important;
+  }
+}
+
+/* Smooth transitions cho tất cả parallax elements */
+.parallax-element * {
+  transition: transform 0.1s ease-out;
+}
+
+/* Đảm bảo text luôn readable */
+.parallax-element h1,
+.parallax-element h2,
+.parallax-element h3,
+.parallax-element p {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Performance optimization */
+.parallax-element {
+  contain: layout style paint;
+  transform: translateZ(0);
+}
+
+/* Đảm bảo các button và interactive elements luôn clickable */
+.parallax-element button,
+.parallax-element a,
+.parallax-element [role="button"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Floating decorative elements */
+.floating-decorative {
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Đảm bảo video background không bị ảnh hưởng bởi parallax */
+.video-background {
+  z-index: 0 !important;
+  transform: none !important;
+}
+
+/* Tối ưu cho các section có background */
+.section-with-bg {
+  position: relative;
+  z-index: 1;
+}
+
+.section-with-bg .parallax-element {
+  z-index: 2;
+}
+
+/* Đảm bảo các element nhỏ luôn visible */
+.small-element {
+  min-width: 1px;
+  min-height: 1px;
+  display: block;
+}
+
+/* Tối ưu cho các grid layouts */
+.grid-layout .parallax-element {
+  contain: layout style;
+}
+
+/* Đảm bảo các image không bị distortion */
+.parallax-element img {
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Smooth hover effects */
+.parallax-element:hover {
+  transform: scale(1.02);
+  transition: transform 0.3s ease;
+}
+
+/* Đảm bảo các text elements luôn readable */
+.parallax-element .text-content {
+  background: rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+/* Tối ưu cho các card elements */
+.card-parallax {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.card-parallax .card-content {
+  transform: translateZ(20px);
+}
+
+/* Đảm bảo các button luôn accessible */
+.parallax-element .action-button {
+  position: relative;
+  z-index: 10;
+  transform: translateZ(30px);
+}
+
+/* Tối ưu cho các overlay elements */
+.parallax-element .overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.parallax-element .overlay * {
+  pointer-events: auto;
+}
+
+/* Đảm bảo các decorative elements không interfere với interaction */
+.decorative-element {
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Tối ưu cho các section có multiple parallax layers */
+.multi-layer-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.multi-layer-section .parallax-layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* Đảm bảo các floating elements không bị cut off */
+.floating-element {
+  position: absolute;
+  overflow: visible;
+}
+
+/* Tối ưu cho các text elements với background */
+.text-with-bg {
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Đảm bảo các interactive elements có proper focus states */
+.parallax-element button:focus,
+.parallax-element a:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Tối ưu cho các animation elements */
+.animated-element {
+  will-change: transform, opacity;
+}
+
+/* Đảm bảo các section có proper spacing */
+.parallax-section {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Tối ưu cho các grid layouts với parallax */
+.parallax-grid {
+  display: grid;
+  gap: 1rem;
+  position: relative;
+}
+
+.parallax-grid .parallax-element {
+  position: relative;
+}
+
+/* Đảm bảo các background elements không interfere */
+.background-element {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Tối ưu cho các content elements */
+.content-element {
+  position: relative;
+  z-index: 1;
+}
+
+/* Đảm bảo các navigation elements luôn accessible */
+.navigation-element {
+  position: fixed;
+  z-index: 1000;
+}
+
+/* Tối ưu cho các modal và overlay elements */
+.modal-element {
+  position: fixed;
+  z-index: 9999;
+}
+
+/* Đảm bảo các tooltip elements luôn visible */
+.tooltip-element {
+  position: absolute;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.tooltip-element * {
+  pointer-events: auto;
+}
+
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -75%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.7) 100%);
+  transform: skewX(-20deg);
+  transition: left 0.5s;
+  pointer-events: none;
+  z-index: 2;
+}
+.btn-shine:hover::after {
+  left: 120%;
+}
+
+.btn-underline {
+  position: relative;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+.btn-underline::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -2px;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, #f472b6, #f9a8d4);
+  transform: scaleX(0);
+  transition: transform 0.3s;
+  transform-origin: left;
+}
+.btn-underline:hover::after {
+  transform: scaleX(1);
+}
+.btn-underline:hover {
+  color: #ec4899;
+}
+
+.product-color-dot {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  background-color: var(--product-color, #eee);
+  margin: 0 2px;
+}
+
+@keyframes gradient-move {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+@keyframes pulse-glow {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 0 #ec4899, 0 0 0 #fff;
+  }
+  50% {
+    transform: scale(1.08);
+    text-shadow: 0 0 16px #ec4899, 0 0 8px #fff;
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 0 #ec4899, 0 0 0 #fff;
+  }
+}
+.gradient-pulse-glow {
+  background: linear-gradient(90deg, #ec4899, #fbbf24, #a5b4fc, #ec4899);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-move 2s linear infinite, pulse-glow 1.2s ease-in-out 1;
+}

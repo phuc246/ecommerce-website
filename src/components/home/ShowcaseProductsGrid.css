@@ -1,0 +1,35 @@
+/* Hiệu ứng shine cho card sản phẩm */
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+.shine-effect::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -75%;
+  width: 50%; height: 100%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.6) 60%, rgba(255,255,255,0.1) 100%);
+  transform: skewX(-20deg);
+  animation: shine-move 0.8s linear 1;
+  pointer-events: none;
+}
+@keyframes shine-move {
+  0% { left: -75%; }
+  100% { left: 120%; }
+}
+
+.border-animate {
+  border: 3px solid transparent;
+  border-radius: 1rem;
+  background:
+    linear-gradient(white, white) padding-box,
+    linear-gradient(120deg, #f472b6, #60a5fa, #f472b6, #fbbf24) border-box;
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+  animation: border-gradient-move 1.2s linear;
+  box-shadow: 0 0 32px #f472b6;
+}
+@keyframes border-gradient-move {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+} 
