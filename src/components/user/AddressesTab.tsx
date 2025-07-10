@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { findLevel1ById, level1s } from 'dvhcvn';
 
 interface Address {
   id: string;
@@ -338,54 +339,31 @@ export default function AddressesTab() {
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {addresses.map((address) => (
-            <div 
-              key={address.id} 
-              className={`p-4 border rounded-md ${address.isDefault ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200'}`}
-            >
-              {address.isDefault && (
-                <div className="flex items-center mb-2 text-indigo-600 text-sm font-medium">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                  </svg>
-                  Địa chỉ mặc định
+        <div className="flex flex-col gap-4">
+          {addresses.map(addr => {
+            const provinceObj = findLevel1ById(addr.city);
+            const provinceName = provinceObj?.name || addr.city;
+            const districtObj = provinceObj?.children?.find((d: any) => String(d.id) === String(addr.district));
+            const districtName = districtObj?.name || addr.district;
+            const wardObj = districtObj?.children?.find((w: any) => String(w.id) === String(addr.ward));
+            const wardName = wardObj?.name || addr.ward;
+            return (
+              <div key={addr.id} className={`p-4 rounded-lg shadow border ${addr.isDefault ? 'border-pink-500 bg-pink-50' : 'border-gray-200 bg-white'} flex flex-col md:flex-row md:items-center md:justify-between animate-fade-in`}>
+                <div>
+                  <div className="font-bold text-fuchsia-700">{addr.fullName} {addr.isDefault && <span className="ml-2 px-2 py-1 text-xs bg-pink-500 text-white rounded">Mặc định</span>}</div>
+                  <div className="text-gray-700">{addr.address}, {wardName}, {districtName}, {provinceName}</div>
+                  <div className="text-gray-500 text-sm">SĐT: {addr.phone}</div>
                 </div>
-              )}
-              
-              <div className="mb-1 font-medium">{address.fullName}</div>
-              <div className="text-gray-600 mb-1">{address.phone}</div>
-              <div className="text-gray-600 mb-1">{address.address}</div>
-              <div className="text-gray-600 mb-3">{address.ward}, {address.district}, {address.city}</div>
-              
-              <div className="flex space-x-2 text-sm">
-                <button
-                  onClick={() => handleEdit(address)}
-                  className="text-indigo-600 hover:text-indigo-800"
-                >
-                  Chỉnh sửa
-                </button>
-                <span className="text-gray-300">|</span>
-                <button
-                  onClick={() => handleDelete(address.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Xóa
-                </button>
-                {!address.isDefault && (
-                  <>
-                    <span className="text-gray-300">|</span>
-                    <button
-                      onClick={() => handleSetDefault(address.id)}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      Đặt làm mặc định
-                    </button>
-                  </>
-                )}
+                <div className="flex gap-2 mt-2 md:mt-0">
+                  {!addr.isDefault && (
+                    <button onClick={() => handleSetDefault(addr.id)} className="px-3 py-1 text-xs bg-pink-100 text-pink-700 rounded hover:bg-pink-200 transition">Chọn làm mặc định</button>
+                  )}
+                  <button onClick={() => handleEdit(addr)} className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 transition">Sửa</button>
+                  <button onClick={() => handleDelete(addr.id)} className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition">Xóa</button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

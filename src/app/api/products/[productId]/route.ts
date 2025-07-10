@@ -82,6 +82,16 @@ export async function GET(
     // Lấy trendId (nếu có)
     const trendId = product.productTrends[0]?.trendId || null;
 
+    // Lấy tất cả ProductImage cho sản phẩm này
+    const productImages = await prisma.ProductImage.findMany({
+      where: { productId: product.id },
+      orderBy: [
+        { isMain: 'desc' }, // Ảnh chính lên đầu
+        { order: 'asc' },
+        { createdAt: 'asc' },
+      ],
+    });
+
     return NextResponse.json({
       ...product,
       attributes: product.productAttributes ? product.productAttributes.map(pa => ({
@@ -90,7 +100,7 @@ export async function GET(
         value: 'value' in pa ? pa.value : (pa.attribute && 'value' in pa.attribute ? pa.attribute.value : ''),
         type: pa.attribute && 'type' in pa.attribute ? pa.attribute.type : '',
       })) : [],
-      images: Array.isArray(product.images) ? product.images : [],
+      images: productImages,
       price: 'price' in product ? product.price : 0,
       salePrice: 'salePrice' in product ? product.salePrice : null,
       variants,

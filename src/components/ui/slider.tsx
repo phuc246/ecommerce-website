@@ -87,23 +87,25 @@ export const Slider: React.FC<SliderProps> = ({
         />
       </div>
       
-      {localValues.map((val, index) => (
-        <div
-          key={index}
-          className="absolute w-5 h-5 bg-white border-2 border-indigo-600 rounded-full top-1/2 -mt-2.5 cursor-pointer"
-          style={{
-            left: `calc(${getPercent(val)}% - 10px)`,
-            zIndex: 10,
-          }}
-          onMouseDown={(e) => handleMouseDown(e, index as 0 | 1)}
-          role="slider"
-          aria-valuemin={min}
-          aria-valuemax={max}
-          aria-valuenow={val}
-          aria-label={index === 0 ? "Min price" : "Max price"}
-          tabIndex={0}
-        />
-      ))}
+      {localValues.map((val, index) => {
+        const minValue = typeof min === 'number' ? min : Number(min);
+        const maxValue = typeof max === 'number' ? max : Number(max);
+        const nowValue = typeof val === 'number' ? val : Number(val);
+        return (
+          <div
+            key={index}
+            className="absolute w-5 h-5 bg-white border-2 border-indigo-600 rounded-full top-1/2 -mt-2.5 cursor-pointer"
+            style={{ left: `calc(${getPercent(val)}% - 10px)`, zIndex: 10 }}
+            onMouseDown={(e) => handleMouseDown(e, index as 0 | 1)}
+            role="slider"
+            aria-valuemin={minValue}
+            aria-valuemax={maxValue}
+            aria-valuenow={nowValue}
+            aria-label={index === 0 ? "Min price" : "Max price"}
+            tabIndex={0}
+          />
+        );
+      })}
     </div>
   );
 }; 

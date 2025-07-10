@@ -1,6 +1,8 @@
 "use client";
 import OrdersTable from '@/components/admin/OrdersTable';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
 
 interface Log {
   id: string;
@@ -15,7 +17,7 @@ interface Log {
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<Log[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [logUserFilter, setLogUserFilter] = useState("");
@@ -67,33 +69,20 @@ export default function OrdersPage() {
   function renderOrderLogDetail(log: Log) {
     try {
       const detail = typeof log.details === 'string' ? JSON.parse(log.details || '{}') : (log.details || {});
-      if (log.action.toLowerCase().includes('create')) {
-        return `Tạo đơn hàng: ${detail.code || detail.after?.code || detail.id || ''}`;
+      if (detail.code && detail.before && detail.after) {
+        return `${detail.code.slice(0,8)}, ${detail.before} -> ${detail.after}`;
       }
-      if (log.action.toLowerCase().includes('update')) {
-        return `Chỉnh sửa đơn hàng: ${detail.before?.code || detail.before?.id || ''} → ${detail.after?.code || detail.after?.id || ''}`;
-      }
-      if (log.action.toLowerCase().includes('delete')) {
-        return `Xoá đơn hàng: ${detail.before?.code || detail.code || detail.id || ''}`;
-      }
+      return '';
     } catch {
-      return log.details || '';
+      return '';
     }
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Quản lý đơn hàng</h1>
-      {loading ? (
-        <div className="text-center py-12">Đang tải...</div>
-      ) : error ? (
-        <div className="text-center text-red-500 py-12">{error}</div>
-      ) : (
-        <>
-          <OrdersTable orders={orders} />
-          <div className="mt-12">
-            <h2 className="text-lg font-semibold mb-2">Lịch sử thao tác đơn hàng</h2>
-            <div className="flex flex-wrap gap-4 mb-4">
+    <div className=" min-h-screen py-8">
+      <div className="max-w-7xl mx-auto bg-white/90 rounded-3xl shadow-2xl p-8">
+        <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 mb-8">Quản lý đơn hàng</h1>
+        <div className="flex flex-wrap gap-4 mb-6">
               <input
                 type="text"
                 placeholder="Lọc theo email người thao tác"
@@ -120,27 +109,79 @@ export default function OrdersPage() {
                 />
               </label>
             </div>
+        <div className="w-full min-h-[220px] max-h-[420px] overflow-y-auto mb-2">
+          <table className="w-full min-w-full bg-white rounded-xl">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Khách hàng</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">SĐT</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ngày đặt</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Chi tiết</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr><td colSpan={6} className="text-center py-12">Đang tải...</td></tr>
+              ) : error ? (
+                <tr><td colSpan={6} className="text-center text-red-500 py-12">{error}</td></tr>
+              ) : (
+                orders.map((order: any) => (
+                  <tr key={order.id} className="hover:bg-blue-50 transition">
+                    <td className="px-4 py-2 font-mono font-bold text-blue-600">{order.id.slice(0,8)}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{order.user?.name || order.user?.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-center">{order.phone || order.address?.phone || ''}</td>
+                    <td className="px-4 py-2 font-semibold text-blue-600">{order.total.toLocaleString()}₫</td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold shadow-sm ${
+                        order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'SHIPPED' ? 'bg-purple-100 text-purple-800' :
+                        order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                        order.status === 'CANCELED' ? 'bg-red-100 text-red-800' : ''
+                      }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">{new Date(order.createdAt).toLocaleString('vi-VN')}</td>
+                    <td className="px-4 py-2">
+                      <Link href={`/admin/orders/${order.id}`}>
+                        <Button size="sm" variant="outline" className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold shadow hover:scale-105 transition-all">Xem chi tiết</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-2">
+          <h2 className="text-lg font-semibold mb-2">Lịch sử thao tác đơn hàng</h2>
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Thời gian</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Người thao tác</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hành động</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Chi tiết</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {loadingLogs ? (
-                    <tr><td colSpan={4} className="text-center py-6">Đang tải log...</td></tr>
+                  <tr><td colSpan={3} className="text-center py-6">Đang tải log...</td></tr>
                   ) : filteredLogs.length === 0 ? (
-                    <tr><td colSpan={4} className="text-center py-6 text-gray-500">Chưa có log thao tác nào.</td></tr>
+                  <tr><td colSpan={3} className="text-center py-6 text-gray-500">Chưa có log thao tác nào.</td></tr>
                   ) : (
                     filteredLogs.map((log) => (
                       <tr key={log.id}>
                         <td className="px-4 py-2 whitespace-nowrap text-sm">{new Date(log.createdAt).toLocaleString()}</td>
                         <td className="px-4 py-2 whitespace-nowrap text-sm">{log.admin?.email || 'Hệ thống'}</td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm">{log.action}</td>
                         <td className="px-4 py-2 whitespace-nowrap text-xs max-w-xs truncate" title={renderOrderLogDetail(log)}>{renderOrderLogDetail(log)}</td>
                       </tr>
                     ))
@@ -149,8 +190,7 @@ export default function OrdersPage() {
               </table>
             </div>
           </div>
-        </>
-      )}
+      </div>
     </div>
   );
 } 

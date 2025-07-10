@@ -22,7 +22,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="container mx-auto px-4 mt-8">
+    <div className="container mx-auto px-4 pt-24 bg-gradient-to-br from-pink-100 via-fuchsia-100 to-indigo-100 min-h-screen animate-fade-in-up rounded-2xl shadow-xl">
       <UserProfileTabs user={user} />
     </div>
   );

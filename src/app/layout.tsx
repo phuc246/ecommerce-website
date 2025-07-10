@@ -1,6 +1,6 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import AuthProvider from "@/providers/AuthProvider";
 import { WishlistProvider } from "@/hooks/use-wishlist";
 import Layout from "@/components/Layout";
@@ -26,7 +26,6 @@ function Providers({ children }: { children: React.ReactNode }) {
           <Layout>
             {children}
           </Layout>
-          <Toaster />
         </WishlistProvider>
       </CSPostHogProvider>
     </AuthProvider>
@@ -44,6 +43,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>{children}</Providers>
+        <Toaster position="top-center" richColors />
         <AnalyticsClient />
       </body>
     </html>

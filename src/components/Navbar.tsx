@@ -103,7 +103,7 @@ export default function Navbar() {
                                 <Link href="/admin/dashboard">Trang quản trị</Link>
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => signOut()}>Đăng xuất</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Đăng xuất</DropdownMenuItem>
                           </>
                         ) : (
                           <>
@@ -113,7 +113,7 @@ export default function Navbar() {
                             <DropdownMenuItem asChild>
                               <Link href="/profile/orders">Đơn hàng của tôi</Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => signOut()}>Đăng xuất</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Đăng xuất</DropdownMenuItem>
                           </>
                         )}
                       </DropdownMenuContent>

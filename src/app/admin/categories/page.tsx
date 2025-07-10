@@ -255,9 +255,6 @@ export default function AdminCategoriesPage() {
             {cat.subcategories?.length || 0}
           </td>
           <td className="px-6 py-3 whitespace-nowrap text-sm text-center text-gray-600">
-            {(cat as any)._count?.products ?? 0}
-          </td>
-          <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-600">
             {new Date(cat.createdAt).toLocaleDateString()}
           </td>
           <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-right">
@@ -440,14 +437,13 @@ export default function AdminCategoriesPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tên danh mục</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Danh mục con</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Sản phẩm</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ngày tạo</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {categories.length === 0 ? (
-                <tr><td colSpan={5} className="text-center text-gray-500 py-8">Chưa có danh mục nào.</td></tr>
+                <tr><td colSpan={4} className="text-center text-gray-500 py-8">Chưa có danh mục nào.</td></tr>
               ) : (
                 renderCategoryRows(categories)
               )}

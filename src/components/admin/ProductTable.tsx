@@ -49,9 +49,14 @@ export default function ProductTable({ products, loading, searchTerm, onDelete, 
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const term = searchTerm.toLowerCase();
+    const matchName = p.name.toLowerCase().includes(term);
+    const matchColor = p.variants.some(v => v.color.toLowerCase().includes(term));
+    const matchSize = p.variants.some(v => v.size.toLowerCase().includes(term));
+    const matchSKU = p.variants.some(v => (v.sku || '').toLowerCase().includes(term));
+    return matchName || matchColor || matchSize || matchSKU;
+  });
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);

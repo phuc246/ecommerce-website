@@ -30,24 +30,18 @@ export default function UserProfileTabs({ user }: UserProfileTabsProps) {
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-        <TabsTrigger value="personal-info" className="text-sm md:text-base">
+      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-gradient-to-r from-pink-200 via-fuchsia-200 to-indigo-200 shadow-lg rounded-xl animate-fade-in-up">
+        <TabsTrigger value="personal-info" className="text-sm md:text-base font-bold text-fuchsia-700 hover:bg-pink-100 transition-all duration-200">
           Thông tin cá nhân
         </TabsTrigger>
-        <TabsTrigger value="addresses" className="text-sm md:text-base">
+        <TabsTrigger value="addresses" className="text-sm md:text-base font-bold text-fuchsia-700 hover:bg-pink-100 transition-all duration-200">
           Địa chỉ giao nhận
         </TabsTrigger>
-        <TabsTrigger value="payment-methods" className="text-sm md:text-base">
+        <TabsTrigger value="payment-methods" className="text-sm md:text-base font-bold text-fuchsia-700 hover:bg-pink-100 transition-all duration-200">
           Phương thức thanh toán
         </TabsTrigger>
-        <TabsTrigger value="order-history" className="text-sm md:text-base">
-          Đơn hàng của tôi
-        </TabsTrigger>
-        <TabsTrigger value="change-password" className="text-sm md:text-base">
+        <TabsTrigger value="change-password" className="text-sm md:text-base font-bold text-fuchsia-700 hover:bg-pink-100 transition-all duration-200">
           Đổi mật khẩu
-        </TabsTrigger>
-        <TabsTrigger value="wishlist" className="text-sm md:text-base">
-          Sản phẩm yêu thích
         </TabsTrigger>
       </TabsList>
 
@@ -70,10 +64,6 @@ export default function UserProfileTabs({ user }: UserProfileTabsProps) {
         
         <TabsContent value="change-password">
           <ChangePasswordTab />
-        </TabsContent>
-        
-        <TabsContent value="wishlist">
-          <WishlistTab />
         </TabsContent>
       </div>
     </Tabs>

@@ -118,14 +118,14 @@ export default function AddEditPromotionModal({ isOpen, onClose, onSuccess, prom
       });
 
       if (!response.ok) {
-        throw new Error("Đã có lỗi xảy ra");
+        const data = await response.json();
+        toast.error(data.error || "Đã có lỗi xảy ra. Vui lòng thử lại.", { id: toastId });
+        return;
       }
       
       toast.success(isEditMode ? "Cập nhật thành công!" : "Tạo thành công!", { id: toastId });
       onSuccess();
       onClose();
-    } catch (error) {
-      toast.error("Đã có lỗi xảy ra. Vui lòng thử lại.", { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -280,7 +280,7 @@ export default function AddEditPromotionModal({ isOpen, onClose, onSuccess, prom
               {preview && (
                 <img src={preview} alt="preview" className="w-16 h-12 object-cover rounded shadow" loading="eager" width="64" height="48" />
               )}
-              <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                 {uploading ? "Đang tải..." : "Tải ảnh"}
               </Button>
               <input

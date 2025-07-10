@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -7,10 +8,10 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
 
-    if (!session?.user?.email) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get the order
@@ -38,28 +39,16 @@ export async function POST(
       return new NextResponse("Order cannot be cancelled", { status: 400 });
     }
 
-    // Start a transaction to update order status and restore stock
-    await prisma.$transaction(async (tx) => {
-      // Update order status to CANCELED
-      await tx.order.update({
-        where: { id: params.id },
-        data: { status: "CANCELED" },
-      });
-
-      // Restore product stock
-      for (const item of order.items) {
-        await tx.productVariant.update({
-          where: { id: item.productVariantId },
-          data: {
-            stock: {
-              increment: item.quantity,
-            },
-          },
-        });
-      }
+    // Chuyển trạng thái sang CANCEL_REQUESTED, set cancelRequestedAt
+    await prisma.order.update({
+      where: { id: params.id },
+      data: {
+        status: "CANCEL_REQUESTED",
+        cancelRequestedAt: new Date(),
+      },
     });
 
-    return NextResponse.json({ message: "Order cancelled successfully" });
+    return NextResponse.json({ message: "Đã gửi yêu cầu huỷ đơn hàng, admin sẽ xác nhận trong 24h." });
   } catch (error) {
     console.error("[ORDER_CANCEL]", error);
     return new NextResponse("Internal error", { status: 500 });

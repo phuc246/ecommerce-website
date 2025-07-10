@@ -98,13 +98,11 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<string[]>(initialData?.categoryPath || []);
   const [selectedTrend, setSelectedTrend] = useState<string | null>(initialData?.trendId || null);
   const [selectedAttributes, setSelectedAttributes] = useState<string[]>(initialData?.attributeIds || []);
-  const [mainImage, setMainImage] = useState<string | null>(initialData?.image || null);
-  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
-  const [additionalImages, setAdditionalImages] = useState<{ id: string, url: string, file: File | null }[]>(
+  // Thay đổi state lưu ảnh
+  const [mainImage, setMainImage] = useState<{ id?: string, url: string, file: File | null, altText?: string } | null>(initialData?.images?.find((img: any) => img.isMain) ? { ...initialData.images.find((img: any) => img.isMain), file: null } : null);
+  const [additionalImages, setAdditionalImages] = useState<{ id?: string, url: string, file: File | null, altText?: string, order: number }[]>(
     initialData?.images
-      ? (Array.isArray(initialData.images) && typeof initialData.images[0] === 'string'
-          ? initialData.images.map((url: string, idx: number) => ({ id: `add_${idx}_${Date.now()}`, url, file: null }))
-          : initialData.images)
+      ? initialData.images.filter((img: any) => !img.isMain).map((img: any, idx: number) => ({ ...img, file: null, order: img.order ?? idx + 1 }))
       : []
   );
   const [variants, setVariants] = useState<Variant[]>(
@@ -125,12 +123,10 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
       setSelectedCategoryPath(initialData.categoryPath || []);
       setSelectedTrend(initialData.trendId || null);
       setSelectedAttributes(initialData.attributeIds || []);
-      setMainImage(initialData.image || null);
+      setMainImage(initialData.images?.find((img: any) => img.isMain) ? { ...initialData.images.find((img: any) => img.isMain), file: null } : null);
       setAdditionalImages(
         initialData.images
-          ? (Array.isArray(initialData.images) && typeof initialData.images[0] === 'string'
-              ? initialData.images.map((url: string, idx: number) => ({ id: `add_${idx}_${Date.now()}`, url, file: null }))
-              : initialData.images)
+          ? initialData.images.filter((img: any) => !img.isMain).map((img: any, idx: number) => ({ ...img, file: null, order: img.order ?? idx + 1 }))
           : []
       );
       setVariants(
@@ -160,10 +156,9 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
     if (!croppingTarget) return;
     const newFile = dataURLtoFile(croppedDataUrl, `cropped-${Date.now()}.png`);
     if(croppingTarget.type === 'main') {
-      setMainImage(croppedDataUrl);
-      setMainImageFile(newFile);
+      setMainImage({ ...mainImage!, url: croppedDataUrl, file: newFile });
     } else if (croppingTarget.type === 'additional') {
-      setAdditionalImages(prev => [...prev, { id: `add_${Date.now()}`, url: croppedDataUrl, file: newFile }].slice(0, 6));
+      setAdditionalImages(prev => [...prev, { ...additionalImages[additionalImages.length - 1], url: croppedDataUrl, file: newFile }].slice(0, 6));
     } else if (croppingTarget.type === 'variant' && croppingTarget.id) {
       handleVariantChange(croppingTarget.id, 'image', croppedDataUrl);
       handleVariantChange(croppingTarget.id, 'imageFile', newFile);
@@ -284,14 +279,14 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
       }
       return;
     }
-    if (!name || !selectedCategoryPath.length || variants.length === 0 || (!mainImage && !mainImageFile)) {
+    if (!name || !selectedCategoryPath.length || variants.length === 0 || (!mainImage?.url && !mainImage?.file)) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc: Tên, danh mục, ảnh chính và ít nhất một biến thể.");
       return;
     }
     try {
       setIsUploading(true);
-      let mainImageUrl = mainImage;
-      if (mainImageFile) mainImageUrl = await uploadFile(mainImageFile);
+      let mainImageUrl = mainImage?.url;
+      if (mainImage?.file) mainImageUrl = await uploadFile(mainImage.file);
       const additionalImageUrls = await Promise.all(additionalImages.filter(img => img.file).map(img => uploadFile(img.file!)));
       const variantImageUrls = await Promise.all(variants.filter(v => v.imageFile).map(async v => ({ id: v.id, url: await uploadFile(v.imageFile!) })));
       const variantUrlMap = new Map(variantImageUrls.map(item => [item.id, item.url]));
@@ -300,6 +295,7 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
         const { stock, ...rest } = v as any;
         return rest;
       });
+      // Khi submit, gửi lên API đúng định dạng ProductImage
       const payload = {
         ...(mode === 'edit' && initialData?.id ? { id: initialData.id } : {}),
         name,
@@ -307,8 +303,11 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
         categoryId: selectedCategoryPath[selectedCategoryPath.length - 1],
         trendId: selectedTrend,
         attributeIds: selectedAttributes,
-        image: mainImageUrl,
-        images: additionalImageUrls,
+        image: mainImage?.url,
+        images: [
+          ...(mainImage ? [{ url: mainImage.url, isMain: true, order: 0, altText: mainImage.altText }] : []),
+          ...additionalImages.map((img, idx) => ({ url: img.url, isMain: false, order: idx + 1, altText: img.altText }))
+        ],
         variants: cleanVariants.map(v => ({
           color: v.color,
           colorHex: v.colorHex,
@@ -338,10 +337,10 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                <div>
                   <label className="font-medium text-sm">Ảnh chính*</label>
                   <div onClick={() => handleFileTrigger({ type: 'main' })} className="relative w-full overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-50 cursor-pointer group mt-1 min-h-[240px]">
-                    {mainImage ? (
+                    {mainImage?.url ? (
                       <Image
-                        src={mainImage}
-                        alt="main"
+                        src={mainImage.url}
+                        alt={mainImage.altText || "main"}
                         fill
                         className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
                       />
@@ -359,8 +358,8 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                     {additionalImages.map((img, idx) => (
                       !!img.url ? (
                         <div key={img.id} className="relative w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 group flex-none">
-                          <Image src={img.url} alt="sub" fill className="object-cover" loading="lazy" />
-                          <button type="button" onClick={() => removeAdditionalImage(img.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 text-xs z-10" aria-label={`Remove additional image ${img.id}`}> <X size={12}/> </button>
+                          <Image src={img.url} alt={img.altText || "sub"} fill className="object-cover" loading="lazy" />
+                          <button type="button" onClick={() => removeAdditionalImage(img.id!)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 text-xs z-10" aria-label={`Remove additional image ${img.id}`}> <X size={12}/> </button>
                           <div className="absolute left-1 bottom-1 flex flex-col gap-1">
                             <button type="button" disabled={idx === 0} onClick={() => moveAdditionalImage(idx, idx-1)} className="bg-white/80 rounded p-0.5 text-xs disabled:opacity-30">↑</button>
                             <button type="button" disabled={idx === additionalImages.length-1} onClick={() => moveAdditionalImage(idx, idx+1)} className="bg-white/80 rounded p-0.5 text-xs disabled:opacity-30">↓</button>

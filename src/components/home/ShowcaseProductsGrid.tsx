@@ -3,6 +3,7 @@ import ProductCard from "../ProductCard";
 import { Loader2, Timer } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import "./ShowcaseProductsGrid.css";
+import Link from "next/link";
 
 interface Product {
   id: string;
@@ -76,10 +77,10 @@ export default function ShowcaseProductsGrid() {
   }, [products]);
 
   return (
-    <section ref={sectionRef} className="relative h-screen flex items-center justify-center py-16 bg-pink-50 dark:bg-gray-800 overflow-hidden">
+    <section ref={sectionRef} className="relative min-h-screen flex flex-col justify-start py-8 bg-pink-50 dark:bg-gray-800">
       {/* Lớp mờ xanh dương biển */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-200 via-blue-100 to-blue-50 opacity-80 blur-2xl z-0" />
-      <div className="relative z-10 flex flex-col items-center justify-center w-full h-full min-h-[480px]">
+      <div className="relative z-10 flex flex-col items-center justify-center w-full min-h-[480px]">
         <motion.h2
           className="text-4xl font-extrabold mb-4 text-gray-900 drop-shadow-lg text-center"
           initial={{ scale: 0.8, opacity: 0 }}
@@ -123,12 +124,11 @@ export default function ShowcaseProductsGrid() {
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
               className="w-full"
             >
-              {/* Luôn render products, không render skeleton loading */}
-              <div className="grid gap-6 w-full justify-items-center grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
+              <div className="grid w-full grid-cols-1 gap-4 px-2 sm:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] justify-items-center">
                 {products.slice(0, GRID_SIZE).map((product, idx) => (
                   <div
                     key={product.id}
-                    className={highlighted === idx ? "relative border-animate w-full min-w-[220px] max-w-sm" : "relative w-full min-w-[220px] max-w-sm"}
+                    className={highlighted === idx ? "relative border-animate w-full min-w-[220px] max-w-[300px] aspect-[3/4]" : "relative w-full min-w-[220px] max-w-[300px] aspect-[3/4]"}
                   >
                     <ProductCard 
                       product={{
@@ -153,16 +153,16 @@ export default function ShowcaseProductsGrid() {
               {/* Nút Xem tất cả sản phẩm ngay dưới lưới */}
               <div className="mt-8 flex justify-center">
                 <motion.div
-                  whileHover={{ scale: 1.08, boxShadow: "0 0 16px #f472b6" }}
+                  whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.96 }}
                   initial={{ y: 40, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.2 }}
                   className="overflow-hidden rounded-lg"
                 >
-                  <a href="/products" className="btn-shine inline-block bg-pink-400 text-white px-8 py-3 rounded-lg hover:bg-pink-500 transition-colors font-semibold shadow-lg focus:outline-none focus:ring-2 focus:ring-pink-400">
+                  <Link href="/products" className="btn-shine inline-block bg-pink-400 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400">
                     Xem tất cả sản phẩm
-                  </a>
+                  </Link>
                 </motion.div>
               </div>
             </motion.div>

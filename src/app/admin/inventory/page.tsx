@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import Image from 'next/image';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import clsx from 'clsx';
 
 interface SizeItem {
   id: string;
@@ -49,7 +50,7 @@ export default function InventoryPage() {
   const [logFromDate, setLogFromDate] = useState<string>('');
   const [logToDate, setLogToDate] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [stockStatus, setStockStatus] = useState<'all' | 'in' | 'out'>('all');
+  const [stockBadge, setStockBadge] = useState<'all' | 'low' | 'out'>('all');
   const [logUserFilter, setLogUserFilter] = useState('');
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function InventoryPage() {
       .then(res => res.json())
       .then(data => {
         // Sắp xếp sản phẩm mới nhất lên đầu
-        data = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        data = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setProducts(data);
       });
     fetchLogs();
@@ -101,30 +102,31 @@ export default function InventoryPage() {
     fetchLogs();
   };
 
-  // Lọc sản phẩm theo searchTerm và trạng thái tồn kho
+  // Lọc sản phẩm theo searchTerm và trạng thái tồn kho (theo badge)
   const filteredProducts = products
-    .map(product => ({
-      ...product,
-      colors: product.colors.filter(color => {
-        const term = searchTerm.toLowerCase();
-        const matchProduct = product.productName.toLowerCase().includes(term);
-        const matchColor = color.color.toLowerCase().includes(term);
-        const matchSize = color.sizes.some(s => s.size.toLowerCase().includes(term));
-        return matchProduct || matchColor || matchSize;
-      })
-    }))
-    .filter(p => {
-      if (stockStatus === 'all') return p.colors.length > 0;
-      if (stockStatus === 'in') {
-        // Có ít nhất 1 size của 1 màu còn hàng
-        return p.colors.some(color => color.sizes.some(s => s.stock > 0));
-      }
-      if (stockStatus === 'out') {
-        // Tất cả size của tất cả màu đều hết hàng
-        return p.colors.length > 0 && p.colors.every(color => color.sizes.every(s => s.stock === 0));
-      }
-      return false;
-    });
+    .map((product: ProductGroup) => {
+      const filteredColors = product.colors
+        .map((color: ColorGroup) => ({
+          ...color,
+          sizes: color.sizes.filter((s: SizeItem) => {
+            const term = searchTerm.toLowerCase();
+            const matchProduct = product.productName.toLowerCase().includes(term);
+            const matchColor = color.color.toLowerCase().includes(term);
+            const matchSize = s.size.toLowerCase().includes(term);
+            const matchSKU = (color.sku || '').toLowerCase().includes(term) || (s.sku || '').toLowerCase().includes(term);
+            let matchStock = true;
+            if (stockBadge === 'low') matchStock = s.stock > 0 && s.stock < 5;
+            if (stockBadge === 'out') matchStock = s.stock === 0;
+            return (matchProduct || matchColor || matchSize || matchSKU) && matchStock;
+          })
+        }))
+        .filter((color: ColorGroup) => color.sizes.length > 0);
+      return {
+        ...product,
+        colors: filteredColors
+      };
+    })
+    .filter((p: ProductGroup) => p.colors.length > 0);
 
   // Lọc log theo email
   const filteredLogs = logs.filter(log =>
@@ -142,16 +144,21 @@ export default function InventoryPage() {
           placeholder="Tìm kiếm theo tên sản phẩm, màu, size..."
           className="border rounded px-3 py-2 w-80"
         />
-        <select
-          value={stockStatus}
-          onChange={e => setStockStatus(e.target.value as any)}
-          className="border rounded px-3 py-2"
-          title="Lọc trạng thái tồn kho"
-        >
-          <option value="all">Tất cả</option>
-          <option value="in">Còn hàng</option>
-          <option value="out">Hết hàng</option>
-        </select>
+        {/* Badge lọc tồn kho */}
+        <div className="flex gap-2">
+          <button
+            className={clsx("px-3 py-2 rounded font-semibold border", stockBadge === 'all' ? 'bg-pink-500 text-white border-pink-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-pink-100')}
+            onClick={() => setStockBadge('all')}
+          >Tất cả</button>
+          <button
+            className={clsx("px-3 py-2 rounded font-semibold border", stockBadge === 'low' ? 'bg-yellow-400 text-white border-yellow-500' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-yellow-100')}
+            onClick={() => setStockBadge('low')}
+          >Hàng &lt;5</button>
+          <button
+            className={clsx("px-3 py-2 rounded font-semibold border", stockBadge === 'out' ? 'bg-red-500 text-white border-red-600' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-red-100')}
+            onClick={() => setStockBadge('out')}
+          >Hết hàng</button>
+        </div>
       </div>
       <div className="flex flex-col gap-4 w-full">
         {/* Bảng sản phẩm */}
@@ -187,7 +194,7 @@ export default function InventoryPage() {
                             <td className="px-4 py-2 border">
                               {color.image && (
                                 <>
-                                  <Image src={color.image} alt={color.color} width={40} height={40} className="rounded shadow cursor-pointer" onClick={e => {e.stopPropagation(); setPopupImage(color.image);}} loading={idx === 0 ? "eager" : "lazy"} priority={idx === 0} />
+                                  <Image src={color.image} alt={color.color} width={40} height={40} className="rounded shadow cursor-pointer" onClick={e => {e.stopPropagation(); setPopupImage(color.image || null);}} loading={idx === 0 ? "eager" : "lazy"} priority={idx === 0} />
                                   <Dialog open={!!popupImage} onOpenChange={() => setPopupImage(null)}>
                                     <DialogContent>
                                       <img src={popupImage || ''} alt="Ảnh lớn" className="max-w-full max-h-[80vh]" />

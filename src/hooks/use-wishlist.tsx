@@ -14,8 +14,8 @@ interface Product {
 interface WishlistContextType {
   wishlist: Product[];
   loading: boolean;
-  addToWishlist: (productId: string) => Promise<void>;
-  removeFromWishlist: (productId: string) => Promise<void>;
+  addToWishlist: (productId: string) => Promise<boolean>;
+  removeFromWishlist: (productId: string) => Promise<boolean>;
   isWishlisted: (productId: string) => boolean;
   refresh: () => void;
 }
@@ -39,35 +39,43 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     fetchWishlist();
   }, []);
 
-  const addToWishlist = async (productId: string) => {
+  const addToWishlist = async (productId: string): Promise<boolean> => {
     const res = await fetch('/api/user/wishlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ productId }),
     });
-    if (res.status === 401) {
+    let data: any = {};
+    try { data = await res.json(); } catch {}
+    if (res.status === 401 || data?.error) {
       toast.error('Bạn phải đăng nhập để sử dụng tính năng này!');
-      return;
+      return false;
     }
-    if (res.ok) {
+    if (res.ok && !data?.error) {
       toast.success('Đã thêm vào danh sách yêu thích!');
       fetchWishlist();
+      return true;
     } else {
       toast.error('Thêm vào wishlist thất bại!');
+      return false;
     }
   };
 
-  const removeFromWishlist = async (productId: string) => {
+  const removeFromWishlist = async (productId: string): Promise<boolean> => {
     const res = await fetch(`/api/user/wishlist/${productId}`, { method: 'DELETE' });
-    if (res.status === 401) {
+    let data: any = {};
+    try { data = await res.json(); } catch {}
+    if (res.status === 401 || data?.error) {
       toast.error('Bạn phải đăng nhập để sử dụng tính năng này!');
-      return;
+      return false;
     }
-    if (res.ok) {
+    if (res.ok && !data?.error) {
       toast.success('Đã xoá khỏi danh sách yêu thích!');
       fetchWishlist();
+      return true;
     } else {
       toast.error('Xoá khỏi wishlist thất bại!');
+      return false;
     }
   };
 

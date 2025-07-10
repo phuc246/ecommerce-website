@@ -11,6 +11,9 @@ import { Heart } from 'lucide-react';
 import { useWishlist } from '@/hooks/use-wishlist';
 import { toast } from 'sonner';
 import { ShoppingCartIcon } from '@heroicons/react/24/outline';
+import AdvancedSearchBar from '@/components/AdvancedSearchBar';
+import CartFloatingButton, { WishlistFloatingButton } from '@/components/CartFloatingButton';
+import { useSession } from 'next-auth/react';
 
 interface Category {
   id: string;
@@ -34,6 +37,7 @@ interface Product {
   maxPrice?: number;
   colors?: { name: string; value: string }[];
   attributes?: { id: string; name: string }[];
+  variants?: { sizes?: { size: string }[] }[];
 }
 
 export default function ProductList() {
@@ -45,6 +49,7 @@ export default function ProductList() {
   const [videoBackground, setVideoBackground] = useState("");
   const [randomHighlightIdx, setRandomHighlightIdx] = useState<number | null>(null);
   const [selectedAttributeId, setSelectedAttributeId] = useState<string | null>(null);
+  const [attributes, setAttributes] = useState<{ id: string; name: string }[]>([]);
   
   const {
     containerRef,
@@ -57,6 +62,7 @@ export default function ProductList() {
 
   const { url: logoUrl, isCircular, isLoading: logoLoading, refresh: refreshLogo } = useLogo();
   const { addToWishlist, removeFromWishlist, isWishlisted } = useWishlist();
+  const { data: session } = useSession();
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -85,8 +91,20 @@ export default function ProductList() {
       }
     };
 
+    const fetchAttributes = async () => {
+      try {
+        const response = await fetch('/api/attributes');
+        if (!response.ok) throw new Error('Failed to fetch attributes');
+        const data = await response.json();
+        setAttributes(data);
+      } catch (error) {
+        console.error('Error fetching attributes:', error);
+      }
+    };
+
     fetchCategories();
     fetchProducts();
+    fetchAttributes();
   }, []);
 
   useEffect(() => {
@@ -153,6 +171,47 @@ export default function ProductList() {
     toast.success('Đã thêm vào giỏ hàng!');
   };
 
+  // Lấy danh sách màu sắc duy nhất từ products
+  const allColors = Array.from(new Set(products.flatMap(p => p.colors?.map(c => c.name) || [])));
+  // Lấy danh sách size duy nhất từ các variant của sản phẩm
+  const allSizes = Array.from(new Set(products.flatMap(p =>
+    (p.variants || []).flatMap(v =>
+      (v.sizes || []).map(sz => sz.size)
+    )
+  )));
+
+  // Handler cho filter nâng cao
+  const handleAdvancedFilter = (filters: any) => {
+    let filtered = [...products];
+    if (filters.name) {
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(filters.name.toLowerCase()));
+    }
+    if (filters.minPrice) {
+      filtered = filtered.filter(p => (p.minSalePrice ?? p.minPrice ?? 0) >= Number(filters.minPrice));
+    }
+    if (filters.maxPrice) {
+      filtered = filtered.filter(p => (p.maxSalePrice ?? p.maxPrice ?? 0) <= Number(filters.maxPrice));
+    }
+    if (filters.category) {
+      filtered = filtered.filter(p => p.category.id === filters.category);
+    }
+    if (filters.attributes && filters.attributes.length > 0) {
+      filtered = filtered.filter(p => p.attributes && p.attributes.some(a => filters.attributes.includes(a.id)));
+    }
+    if (filters.colors && filters.colors.length > 0) {
+      filtered = filtered.filter(p => p.colors && p.colors.some(c => filters.colors.includes(c.name)));
+    }
+    // Sửa filter size: chỉ lọc theo variant.sizes
+    if (filters.sizes && filters.sizes.length > 0) {
+      filtered = filtered.filter(p =>
+        (p.variants || []).some(v =>
+          (v.sizes || []).some(sz => filters.sizes.includes(sz.size))
+        )
+      );
+    }
+    setFilteredProducts(filtered);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -201,7 +260,7 @@ export default function ProductList() {
       <div className="relative z-10 mt-0">
         <div 
           ref={containerRef}
-          className="flex space-x-3 py-2 px-2 overflow-x-auto hide-scrollbar relative bg-white rounded-lg shadow"
+          className="flex space-x-2 py-2 px-4 overflow-x-auto hide-scrollbar relative bg-white/60 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/40 min-h-[64px]"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onScroll={handleScroll}
@@ -211,25 +270,25 @@ export default function ProductList() {
           {categories.map((category) => (
             <div
               key={category.id}
-              className={`flex-shrink-0 cursor-pointer p-4 rounded-xl transition-all duration-300 transform ${
+              className={`flex-shrink-0 cursor-pointer p-2 rounded-full transition-all duration-300 transform ${
                 selectedCategory === category.id ? 'bg-indigo-100 shadow-md scale-105' : 'hover:bg-gray-100 hover:scale-105'
               }`}
               onClick={() => handleCategoryClick(category.id)}
             >
               <div className="text-center">
-                <div className={`h-16 w-16 mx-auto border border-gray-200 overflow-hidden mb-2 bg-white flex items-center justify-center ${isCircular ? 'rounded-full' : ''}`}>
+                <div className={`h-10 w-10 mx-auto border border-gray-200 overflow-hidden mb-1 bg-white flex items-center justify-center rounded-full`}> 
                   {!logoLoading && logoUrl && (
                     <Image
                       src={logoUrl}
                       alt={category.name}
-                      width={64}
-                      height={64}
-                      className={`object-contain ${isCircular ? 'rounded-full' : ''}`}
+                      width={40}
+                      height={40}
+                      className="object-contain rounded-full"
                       unoptimized={logoUrl.startsWith('data:')}
                     />
                   )}
                 </div>
-                <span className="text-sm font-medium">{category.name}</span>
+                <span className="text-xs font-medium leading-tight">{category.name}</span>
               </div>
             </div>
           ))}
@@ -238,9 +297,9 @@ export default function ProductList() {
         </div>
       </div>
       {/* Product attribute bar section */}
-      <div className="relative z-10 mt-1 mb-2">
-        <div className="flex items-center py-2 px-2 bg-white rounded-lg shadow min-h-[44px]">
-          <span className="font-semibold text-sm text-gray-700 flex-shrink-0 mr-3">Hôm nay bạn sẽ:</span>
+      <div className="relative z-10 mt-2 mb-3">
+        <div className="flex items-center py-3 px-4 bg-white/60 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/40 min-h-[52px]">
+          <span className="font-semibold text-base text-gray-700 flex-shrink-0 mr-3">Hôm nay bạn sẽ:</span>
           <div className="flex space-x-2 overflow-x-auto hide-scrollbar flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
             {(() => {
               // Lấy tất cả thuộc tính từ filteredProducts hoặc products nếu chưa lọc
@@ -270,6 +329,16 @@ export default function ProductList() {
           </div>
         </div>
       </div>
+      {/* Advanced search bar section */}
+      <div className="relative z-10 mb-2">
+        <AdvancedSearchBar
+          categories={categories}
+          attributes={attributes}
+          colors={allColors}
+          sizes={allSizes}
+          onFilterChange={handleAdvancedFilter}
+        />
+      </div>
       {/* Main content area */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 min-h-[70vh] flex flex-col">
         <div className="flex flex-col md:flex-row gap-8 flex-grow">
@@ -297,38 +366,32 @@ export default function ProductList() {
                               {product.category.name}
                             </span>
                           </div>
-                          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                            <div className="flex flex-col sm:flex-row gap-2 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                              <Link
-                                href={`/products/${product.id}`}
-                                className="bg-white text-gray-800 hover:bg-indigo-50 px-4 py-2 rounded-full shadow font-medium text-sm flex items-center border border-gray-200"
-                              >
-                                Xem chi tiết
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-10">
+                            <div className="flex flex-col space-y-4">
+                              <Link href={`/products/${product.id}`} className="bg-white/80 hover:bg-pink-400 hover:text-white text-pink-500 rounded-full p-4 shadow transition-colors flex items-center justify-center" title="Xem chi tiết">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                               </Link>
                               <button 
-                                className="bg-white text-pink-500 hover:text-pink-600 p-2 rounded-full shadow flex items-center justify-center border border-pink-200 transition-colors"
-                                aria-label="Thêm vào giỏ hàng"
-                                title="Thêm vào giỏ hàng"
-                              >
-                                <ShoppingBagIcon className="h-5 w-5" />
-                              </button>
-                              <button 
-                                className={`bg-white/80 hover:bg-pink-400 hover:text-white text-pink-500 rounded-full p-4 shadow transition-colors flex items-center justify-center ${isWishlisted(product.id) ? 'text-red-500 fill-red-500' : ''}`}
-                                aria-label={isWishlisted(product.id) ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
-                                title={isWishlisted(product.id) ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
+                                className="bg-white/80 hover:bg-pink-400 hover:text-white text-pink-500 rounded-full p-4 shadow transition-colors flex items-center justify-center"
+                                title={isWishlisted(product.id) ? "Bỏ khỏi yêu thích" : "Yêu thích"}
                                 onClick={async (e) => {
-                                  e.stopPropagation();
                                   e.preventDefault();
+                                  if (!session || !session.user) {
+                                    toast.error('Vui lòng đăng nhập để sử dụng tính năng yêu thích!');
+                                    return;
+                                  }
+                                  try {
                                   if (isWishlisted(product.id)) {
                                     await removeFromWishlist(product.id);
-                                    toast.success('Đã bỏ khỏi yêu thích!');
                                   } else {
                                     await addToWishlist(product.id);
-                                    toast.success('Đã lưu vào yêu thích!');
+                                    }
+                                  } catch {
+                                    // Toast lỗi đã xử lý ở hook
                                   }
                                 }}
                               >
-                                <Heart size={24} className={isWishlisted(product.id) ? 'text-red-500 fill-red-500' : ''} fill={isWishlisted(product.id) ? 'currentColor' : 'none'} />
+                                <Heart className={isWishlisted(product.id) ? 'fill-pink-500 text-pink-500' : ''} />
                               </button>
                             </div>
                           </div>
@@ -412,33 +475,9 @@ export default function ProductList() {
           </div>
         </div>
       </div>
-      {/* Icon nổi wishlist + cart */}
-      <div className="fixed left-6 bottom-6 z-50 flex flex-col gap-6">
-        {/* Wishlist Floating Button */}
-        <button
-          className="bg-pink-200 text-pink-600 rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-pink-300 transition-colors group"
-          onClick={handleFloatingWishlist}
-          aria-label={wishlisted ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
-          title={wishlisted ? 'Bỏ khỏi yêu thích' : 'Lưu vào yêu thích'}
-        >
-          <motion.span
-            animate={{ scale: [1, 1.25, 1] }}
-            transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
-            className="flex"
-          >
-            <Heart className="h-7 w-7" />
-          </motion.span>
-        </button>
-        {/* Cart Floating Button */}
-        <button
-          className="bg-pink-400 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-pink-500 transition-colors group"
-          onClick={handleFloatingCart}
-          aria-label="Thêm vào giỏ hàng"
-          title="Thêm vào giỏ hàng"
-        >
-          <ShoppingCartIcon className="h-7 w-7" />
-        </button>
-      </div>
+      {/* Floating buttons */}
+      <CartFloatingButton />
+      <WishlistFloatingButton />
     </div>
   );
 } 

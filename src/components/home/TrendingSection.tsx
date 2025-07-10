@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 // Base64-encoded transparent pixel
 const defaultImageBase64 = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
@@ -19,6 +20,7 @@ export default function TrendingSection() {
   const [trends, setTrends] = useState<TrendingCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [imageFallbacks, setImageFallbacks] = useState<Record<string, boolean>>({});
+  const router = useRouter();
 
   useEffect(() => {
     const fetchTrends = async () => {
@@ -109,7 +111,14 @@ export default function TrendingSection() {
                 <div className="absolute bottom-0 left-0 p-4 text-white">
                   <h3 className="font-bold text-lg drop-shadow-lg">{trend.name}</h3>
                   <p className="text-sm drop-shadow-md">{trend.productCount} sản phẩm</p>
-                  <span className="text-sm mt-2 inline-block font-semibold group-hover/card:underline drop-shadow-md">
+                  <span
+                    className="text-sm mt-2 inline-block font-semibold group-hover/card:underline drop-shadow-md cursor-pointer opacity-80"
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      router.push(`/trends#trend-${trend.id}`);
+                    }}
+                  >
                     Khám phá ngay &rarr;
                   </span>
                 </div>
@@ -120,14 +129,14 @@ export default function TrendingSection() {
       </div>
       <div className="flex justify-center mt-8">
         <motion.div
-          whileHover={{ scale: 1.08, boxShadow: "0 0 16px #f472b6" }}
+          whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.96 }}
           initial={{ y: 40, opacity: 0 }}
           whileInView={{ y: 0, opacity: 1 }}
           transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.2 }}
           className="overflow-hidden rounded-lg"
         >
-          <Link href="/trends" className="btn-shine inline-block bg-pink-400 text-white px-8 py-3 rounded-lg hover:bg-pink-500 transition-colors font-semibold shadow-lg text-lg focus:outline-none focus:ring-2 focus:ring-pink-400">
+          <Link href="/trends" className="btn-shine inline-block bg-pink-400 text-white px-8 py-3 rounded-lg font-semibold shadow-lg text-lg hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400">
             Khám phá xu hướng
           </Link>
         </motion.div>

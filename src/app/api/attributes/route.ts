@@ -14,7 +14,6 @@ export async function GET() {
         name: 'asc',
       },
     });
-
     return NextResponse.json(attributes);
   } catch (error) {
     console.error('Error fetching attributes:', error);

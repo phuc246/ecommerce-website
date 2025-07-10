@@ -54,6 +54,9 @@ export default function TrendsPage() {
   const [productTotalPages, setProductTotalPages] = useState(1);
   const [productLoading, setProductLoading] = useState(false);
 
+  // State cho popup ảnh phóng to
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
+
   const trendAspectRatioOptions: AspectRatioOption[] = [
     { value: '1.91', label: 'Tự do' },
     { value: 'circle', label: 'Tròn' },
@@ -572,6 +575,7 @@ export default function TrendsPage() {
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="bg-gray-100">
+                      <th className="p-2">Ảnh</th>
                       <th className="p-2">Chọn</th>
                       <th className="p-2">Tên sản phẩm</th>
                       <th className="p-2">Danh mục</th>
@@ -580,6 +584,18 @@ export default function TrendsPage() {
                   <tbody>
                     {products.map(product => (
                       <tr key={product.id}>
+                        <td className="p-2 text-center">
+                          {product.image && (
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              width={48}
+                              height={48}
+                              className="object-cover rounded cursor-pointer hover:scale-110 transition-transform"
+                              onClick={() => setZoomImage(product.image)}
+                            />
+                          )}
+                        </td>
                         <td className="p-2 text-center">
                           <input
                             type="checkbox"
@@ -610,8 +626,23 @@ export default function TrendsPage() {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setProductModalOpen(false)} className="px-4 py-2 rounded bg-gray-200 text-gray-700">Hủy</button>
-              <button onClick={handleAddProductsToTrend} className="px-4 py-2 rounded bg-pink-500 text-white font-semibold hover:bg-pink-600">Thêm vào xu hướng</button>
+              <button onClick={handleAddProductsToTrend} className="px-4 py-2 rounded bg-pink-500 text-white font-semibold hover:bg-pink-600">Lưu</button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Popup phóng to ảnh sản phẩm */}
+      {zoomImage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60" onClick={() => setZoomImage(null)}>
+          <div className="relative" onClick={e => e.stopPropagation()}>
+            <Image src={zoomImage} alt="Ảnh sản phẩm phóng to" width={400} height={400} className="object-contain rounded-lg shadow-2xl max-w-[90vw] max-h-[80vh]" />
+            <button
+              className="absolute top-2 right-2 bg-white/80 hover:bg-pink-500 hover:text-white text-pink-600 rounded-full p-2 shadow"
+              onClick={() => setZoomImage(null)}
+              aria-label="Đóng"
+            >
+              ×
+            </button>
           </div>
         </div>
       )}

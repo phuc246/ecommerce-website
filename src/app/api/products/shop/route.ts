@@ -71,23 +71,49 @@ export async function GET(request: Request) {
     ]);
 
     // Map lại để thêm salePrice (lấy giá nhỏ nhất trong các variants nếu có, hoặc undefined)
-    const productsWithPrices = products.map(product => {
-      let minPrice, maxPrice, minSalePrice, maxSalePrice;
+    const productsWithVariants = products.map(product => {
+      // Gom nhóm các variant theo color
+      const variantGroups: Record<string, { color: string; colorHex?: string; image?: string; sku?: string; sizes: any[] }> = {};
+      for (const v of product.variants) {
+        const key = v.color + (v.colorHex || "");
+        if (!variantGroups[key]) {
+          variantGroups[key] = {
+            color: v.color,
+            colorHex: v.colorHex ?? undefined,
+            image: v.image ?? undefined,
+            sku: v.sku ?? undefined,
+            sizes: [],
+          };
+        }
+        variantGroups[key].sizes.push({
+          size: v.size,
+          stock: v.stock,
+          price: v.price,
+          salePrice: v.salePrice,
+        });
+      }
+      // Lấy màu không trùng lặp
       let colors: { name: string; value: string }[] = [];
+      const colorMap = new Map();
+      for (const v of product.variants) {
+        if (v.color && v.colorHex) {
+          const key = v.colorHex;
+          if (!colorMap.has(key)) {
+            colorMap.set(key, { name: v.color, value: v.colorHex });
+          }
+        }
+      }
+      colors = Array.from(colorMap.values());
+      // Lấy attributes từ productAttributes
+      const attributes = product.productAttributes?.map(pa => ({
+        id: pa.attribute.id,
+        name: pa.attribute.name
+      })) || [];
+      // Giá min/max
+      let minPrice, maxPrice, minSalePrice, maxSalePrice;
       if (product.variants && product.variants.length > 0) {
         const prices = product.variants.map(v => v.price).filter((p): p is number => typeof p === 'number' && p > 0);
         const salePrices = product.variants.map(v => v.salePrice).filter((p): p is number => typeof p === 'number' && p > 0);
-        // Lấy màu không trùng lặp
-        const colorMap = new Map();
-        for (const v of product.variants) {
-          if (v.color && v.colorHex) {
-            const key = v.colorHex;
-            if (!colorMap.has(key)) {
-              colorMap.set(key, { name: v.color, value: v.colorHex });
-            }
-          }
-        }
-        colors = Array.from(colorMap.values());
         if (prices.length > 0) {
           minPrice = Math.min(...prices);
           maxPrice = Math.max(...prices);
@@ -97,13 +123,9 @@ export async function GET(request: Request) {
           maxSalePrice = Math.max(...salePrices);
         }
       }
-      // Lấy attributes từ productAttributes
-      const attributes = product.productAttributes?.map(pa => ({
-        id: pa.attribute.id,
-        name: pa.attribute.name
-      })) || [];
       return {
         ...product,
+        variants: Object.values(variantGroups),
         minPrice,
         maxPrice,
         minSalePrice,
@@ -114,7 +136,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
-      products: productsWithPrices,
+      products: productsWithVariants,
       pagination: {
         total,
         pages: Math.ceil(total / limit),

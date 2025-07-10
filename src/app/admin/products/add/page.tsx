@@ -65,7 +65,6 @@ const imageAspectRatioOptions: AspectRatioOption[] = [
 function buildCategoryBreadcrumbOptions(categories: Category[]): { id: string; label: string; }[] {
   // Xây map id -> category
   const map = new Map(categories.map(c => [c.id, c]));
-  // Tìm tất cả danh mục lá
   const isLeaf = (cat: Category) => !categories.some(c => c.parentId === cat.id);
   const leaves = categories.filter(isLeaf);
   // Hàm lấy label breadcrumb

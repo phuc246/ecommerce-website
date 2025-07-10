@@ -10,30 +10,43 @@ interface User {
   email?: string | null;
   image?: string | null;
   role?: string;
+  preferences?: string[];
 }
 
 export default function PersonalInfoTab() {
   const router = useRouter();
   const { data: session } = useSession();
   const [user, setUser] = useState<User | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<string[]>([]);
+  const [preferenceOptions, setPreferenceOptions] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchUser = async () => {
-      const res = await fetch('/api/user/profile');
+      const res = await fetch('/api/profile');
       if (res.ok) {
         const data = await res.json();
         setUser(data);
         setName(data.name || '');
         setEmail(data.email || '');
+        setPreferences(Array.isArray(data.preferences) ? data.preferences : []);
       }
     };
     fetchUser();
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/attributes')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setPreferenceOptions(data.map((attr: any) => attr.name));
+        }
+      });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +55,7 @@ export default function PersonalInfoTab() {
     setError(null);
     
     try {
-      const response = await fetch('/api/user/profile', {
+      const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -50,6 +63,7 @@ export default function PersonalInfoTab() {
         body: JSON.stringify({
           name,
           email,
+          preferences: Array.isArray(preferences) ? preferences : [],
         }),
       });
       
@@ -59,7 +73,6 @@ export default function PersonalInfoTab() {
       }
       
       setSuccess('Cập nhật thông tin thành công!');
-      setIsEditing(false);
       router.refresh();
       
       // Hide success message after 3 seconds
@@ -77,14 +90,6 @@ export default function PersonalInfoTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">Thông tin cá nhân</h2>
-        {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="px-4 py-2 text-sm font-medium text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50"
-          >
-            Chỉnh sửa
-          </button>
-        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-8">
@@ -107,70 +112,56 @@ export default function PersonalInfoTab() {
               <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-700">
                 Họ và tên
               </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              ) : (
-                <p className="p-2 bg-gray-50 rounded-md">{user?.name || 'Chưa cập nhật'}</p>
-              )}
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              />
             </div>
             
             <div className="mb-4">
               <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-700">
                 Email
               </label>
-              {isEditing ? (
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                />
-              ) : (
-                <p className="p-2 bg-gray-50 rounded-md">{user?.email || 'Chưa cập nhật'}</p>
-              )}
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                required
+                disabled
+              />
             </div>
             
             <div className="mb-4">
               <label className="block mb-2 text-sm font-medium text-gray-700">
-                Vai trò
+                Sở thích cá nhân
               </label>
-              <p className="p-2 bg-gray-50 rounded-md capitalize">
-                {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Người dùng'}
-              </p>
+              <div className="flex flex-wrap gap-2">
+                {preferenceOptions.map((pref) => (
+                  <button
+                    type="button"
+                    key={pref}
+                    className={`px-3 py-1 rounded-full border text-xs font-semibold transition-all duration-150 ${preferences.includes(pref) ? 'bg-fuchsia-500 text-white border-fuchsia-500 shadow' : 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 hover:bg-fuchsia-100'}`}
+                    onClick={() => setPreferences(prefs => prefs.includes(pref) ? prefs.filter(p => p !== pref) : [...prefs, pref])}
+                  >
+                    {pref}
+                  </button>
+                ))}
+              </div>
             </div>
             
-            {isEditing && (
-              <div className="flex space-x-3 mt-6">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setName(user?.name || '');
-                    setEmail(user?.email || '');
-                    setError(null);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                  Hủy
-                </button>
-              </div>
-            )}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-6"
+            >
+              {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </button>
           </form>
         </div>
       </div>

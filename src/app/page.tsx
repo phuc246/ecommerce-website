@@ -47,9 +47,8 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section with Video Background */}
-      <header className="h-screen relative">
+      <header className="min-h-screen relative">
         <VideoBackground videoSrc={videoHeader} />
-        
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
           <motion.h1
             className="text-5xl font-bold mb-6 text-center drop-shadow-lg"
@@ -74,29 +73,29 @@ export default function Home() {
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1, transition: { type: "spring", stiffness: 400, damping: 15, delay: 1.2 } }}
             >
-              <Button
-                asChild
-                className="btn-shine bg-pink-400 text-white hover:bg-pink-500 px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300"
+              <Link
+                href="/products"
+                className="btn-shine bg-pink-400 text-white hover:bg-pink-500 px-8 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300 inline-block text-center"
                 aria-label="Xem sản phẩm"
               >
-                <Link href="/products">Xem sản phẩm</Link>
-              </Button>
+                Xem sản phẩm
+              </Link>
             </motion.div>
           </div>
         </div>
       </header>
 
       {/* Ocean video background cho Xu Hướng Thời Trang */}
-      <div className="relative w-full h-screen z-0 overflow-hidden">
+      <div className="relative w-full min-h-[60vh] z-0 overflow-hidden">
         <VideoBackground videoSrc={videoBackground} />
-        <section className="py-12 bg-transparent relative z-10">
+        <section className="py-6 bg-transparent relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 1, ease: 'easeOut' }}
           >
-            <div className="container mx-auto px-4">
+            <div className="container mx-auto px-2">
               <TrendingSection />
             </div>
           </motion.div>
@@ -108,7 +107,7 @@ export default function Home() {
           {/* Main Content */}
           <section className="w-full bg-transparent">
             {/* Promotion Banner */}
-            <section className="w-full bg-transparent mb-12 sbg-transparent">
+            <section className="w-full bg-pink-50 py-4 px-2 md:px-4">
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -119,9 +118,9 @@ export default function Home() {
               </motion.div>
             </section>
             {/* Featured Products Section */}
-            <section className="w-full py-8 bg-pink-50 px-2 md:px-8">
+            <section className="w-full py-4 bg-pink-50 px-2 md:px-4">
               <motion.section
-                className="mb-12 h-screen flex flex-col justify-center"
+                className="w-full mb-8 min-h-[60vh] py-8 flex flex-col justify-center"
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.3 }}

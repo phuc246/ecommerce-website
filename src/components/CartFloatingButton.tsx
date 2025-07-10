@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { ShoppingCart, Heart } from 'lucide-react';
 import { useCart } from '@/hooks/use-cart';
 import { useWishlist } from '@/hooks/use-wishlist';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export default function CartFloatingButton() {
-  const { items } = useCart();
+  const { items, fetchCart } = useCart();
+  useEffect(() => { fetchCart().catch(() => {}); }, []);
   return (
     <Link
       href="/cart"

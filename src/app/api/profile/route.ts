@@ -52,12 +52,22 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { name, preferences } = await request.json();
+    const { name, email, preferences } = await request.json();
+
+    // Nếu email thay đổi, kiểm tra email mới đã tồn tại chưa
+    const sessionUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (email && email !== session.user.email) {
+      const existing = await prisma.user.findUnique({ where: { email } });
+      if (existing) {
+        return NextResponse.json({ error: 'Email đã tồn tại.' }, { status: 400 });
+      }
+    }
 
     const user = await prisma.user.update({
       where: { email: session.user.email },
       data: {
         name,
+        email,
         preferences,
       },
       select: {

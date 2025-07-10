@@ -31,6 +31,7 @@ export default function PromotionBanner() {
       try {
         const response = await fetch('/api/promotions/active');
         if (!response.ok) {
+          console.error('[PromotionBanner] Fetch failed:', response.status, response.statusText);
           throw new Error('Failed to fetch promotions');
         }
         const data = await response.json();
@@ -48,6 +49,7 @@ export default function PromotionBanner() {
           setPromotions([]);
         }
       } catch (error) {
+        console.error('[PromotionBanner] Error:', error);
         setPromotions([]);
       } finally {
         setLoading(false);
@@ -106,9 +108,9 @@ export default function PromotionBanner() {
   const isFull = promotions.length === 4;
   const isCenter = promotions.length < 4;
   return (
-    <div className="w-screen relative left-1/2 right-1/2 -translate-x-1/2 my-3">
+    <div className="w-full py-4 bg-pink-50 px-2 md:px-4 mx-auto">
       <motion.div
-        className="mb-6 text-3xl font-bold text-black text-center"
+        className="mb-4 text-3xl font-bold text-black text-center w-full mx-auto"
         initial={{ scale: 0.8, opacity: 0 }}
         whileInView={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
@@ -117,23 +119,22 @@ export default function PromotionBanner() {
       </motion.div>
       <div
         className={
-          `flex gap-6 snap-x snap-mandatory md:px-2 ` +
-          (isCenter ? 'justify-center' : '') +
-          (isScroll ? ' overflow-x-auto' : ' overflow-x-visible')
+          `flex gap-6 snap-x snap-mandatory md:px-2 w-full overflow-x-auto justify-start`
         }
       >
         {promotions.map((promo) => (
           <div
             key={promo.id}
             className={
-              `flex-shrink-0 snap-center h-[120px] md:h-[200px] rounded-lg overflow-hidden relative shadow-lg bg-white/80 ` +
+              `flex-shrink-0 snap-center h-[90px] md:h-[140px] rounded-lg overflow-hidden relative shadow-lg bg-white/80 min-w-[80vw] sm:min-w-[250px] ` +
               (isCenter
                 ? (promotions.length === 1
                     ? 'w-full max-w-2xl'
                     : promotions.length === 2
                       ? 'w-1/2 max-w-xl'
                       : 'w-1/3 max-w-lg')
-                : 'w-1/4 min-w-[250px] max-w-[420px]')
+                : 'w-1/4 min-w-[250px] max-w-[420px]') +
+              ' sm:w-1/2 sm:max-w-xs w-[90vw] min-w-[260px] max-w-[95vw]'
             }
           >
             <div className="absolute inset-0 w-full h-full z-0">
@@ -153,7 +154,7 @@ export default function PromotionBanner() {
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
             </div>
             <div className="relative z-10 flex flex-col justify-center w-full h-full p-4 text-white">
-              <h3 className="font-bold text-lg md:text-2xl mb-1 flex items-center gap-2">
+              <h3 className="font-bold text-base md:text-2xl mb-1 flex items-center gap-2">
                 {promo.title}
                 <motion.span
                   initial={{ scale: 1 }}
@@ -164,13 +165,14 @@ export default function PromotionBanner() {
                   <Sparkles size={20} />
                 </motion.span>
               </h3>
-              <p className="text-sm mb-1">{promo.description}</p>
-              <div className="flex flex-row items-center gap-2 mb-1">
+              <p className="text-xs md:text-sm mb-1 line-clamp-2 md:line-clamp-3">{promo.description}</p>
+              <div className="flex flex-row items-center gap-2 mb-1 flex-wrap">
                 <motion.div
                   whileHover={{ scale: 1.08, rotate: [0, 2, -2, 0] }}
-                  className="bg-pink-100 text-indigo-900 font-mono font-bold py-1 px-3 rounded-lg flex items-center cursor-pointer border-2 border-yellow-300"
+                  className="bg-pink-100 text-indigo-900 font-mono font-bold py-1 px-3 rounded-lg flex items-center cursor-pointer border-2 border-yellow-300 text-xs md:text-base"
                   onClick={() => copyToClipboard(promo.code)}
                   aria-label="Sao chép mã khuyến mãi"
+                  style={{ wordBreak: 'break-all', fontSize: 'clamp(13px,3vw,18px)' }}
                 >
                   <Sparkles className="mr-1 text-yellow-400 animate-pulse" size={16} />
                   <span className="mr-1">{promo.code}</span>
@@ -182,7 +184,7 @@ export default function PromotionBanner() {
                     </svg>
                   )}
                 </motion.div>
-                <span className="text-xs font-medium">
+                <span className="text-xs font-medium block w-full md:w-auto">
                   {promo.expiryDate ? `Còn lại: ${Math.floor((new Date(promo.expiryDate).getTime() - Date.now())/(1000*60*60*24))} ngày` : ''}
                 </span>
               </div>

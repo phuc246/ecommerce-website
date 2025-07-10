@@ -133,24 +133,24 @@ const ServicesSection = () => {
                   </div>
                   <h3 className="mt-6 text-xl font-semibold text-gray-900 dark:text-white">Nghệ thuật tặng quà</h3>
                   <div className="mt-2 flex space-x-4">
-                    <motion.a
-                      href="/products"
-                      className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors"
+                    <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       whileInView={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                      Quà tặng cho nữ
-                    </motion.a>
-                    <motion.a
-                      href="/products"
-                      className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors"
+                      <Link href="/products" className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors">
+                        Quà tặng cho nữ
+                      </Link>
+                    </motion.div>
+                    <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       whileInView={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                      Quà tặng cho nam
-                    </motion.a>
+                      <Link href="/products" className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors">
+                        Quà tặng cho nam
+                      </Link>
+                    </motion.div>
                   </div>
                 </div>
                 {/* Ảnh 2 */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ChevronDown, ShoppingBag } from 'lucide-react';
+import { Loader2, ChevronDown, ShoppingBag, MoreVertical, ChevronUp } from 'lucide-react';
 import { 
   Select,
   SelectContent,
@@ -16,6 +16,7 @@ import OrderDetail from '../OrderDetail';
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { OrderStatus } from "@prisma/client";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
 interface OrderItem {
   id: string;
@@ -81,6 +82,9 @@ export default function OrderHistoryTab() {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [orderFilter, setOrderFilter] = useState('all');
   const [orderSort, setOrderSort] = useState('newest');
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [expandedOrderDetail, setExpandedOrderDetail] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -119,6 +123,14 @@ export default function OrderHistoryTab() {
       return a.total - b.total;
     });
 
+  const statusMap: Record<string, { label: string; color: string }> = {
+    PENDING: { label: 'Chờ xác nhận', color: 'bg-yellow-400 text-white animate-pulse' },
+    PROCESSING: { label: 'Đang xử lý', color: 'bg-blue-400 text-white' },
+    SHIPPED: { label: 'Đang giao', color: 'bg-purple-400 text-white animate-pulse' },
+    DELIVERED: { label: 'Đã giao', color: 'bg-green-500 text-white' },
+    CANCELLED: { label: 'Đã hủy', color: 'bg-red-400 text-white' },
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -150,89 +162,98 @@ export default function OrderHistoryTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-2 max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h3 className="text-lg font-medium">Your Orders</h3>
+        <h3 className="text-2xl font-bold bg-gradient-to-r from-pink-500 via-red-400 to-yellow-400 bg-clip-text text-transparent drop-shadow animate-fade-in">Đơn hàng của bạn</h3>
         <div className="flex flex-col sm:flex-row gap-3">
           <Select value={orderFilter} onValueChange={setOrderFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder="Lọc theo trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Orders</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="PROCESSING">Processing</SelectItem>
-              <SelectItem value="SHIPPED">Shipped</SelectItem>
-              <SelectItem value="DELIVERED">Delivered</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              <SelectItem value="all">Tất cả</SelectItem>
+              <SelectItem value="PENDING">Chờ xác nhận</SelectItem>
+              <SelectItem value="PROCESSING">Đang xử lý</SelectItem>
+              <SelectItem value="SHIPPED">Đang giao</SelectItem>
+              <SelectItem value="DELIVERED">Đã giao</SelectItem>
+              <SelectItem value="CANCELLED">Đã hủy</SelectItem>
             </SelectContent>
           </Select>
-          
           <Select value={orderSort} onValueChange={setOrderSort}>
             <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Sort by" />
+              <SelectValue placeholder="Sắp xếp" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="highest">Highest Amount</SelectItem>
-              <SelectItem value="lowest">Lowest Amount</SelectItem>
+              <SelectItem value="newest">Mới nhất</SelectItem>
+              <SelectItem value="oldest">Cũ nhất</SelectItem>
+              <SelectItem value="highest">Tổng tiền cao nhất</SelectItem>
+              <SelectItem value="lowest">Tổng tiền thấp nhất</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
-
       <div className="space-y-4">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl shadow-lg bg-white/80 backdrop-blur-md animate-fade-in">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mã đơn</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tổng tiền</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ngày đặt</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Mã đơn</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Trạng thái</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Tổng tiền</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Ngày đặt</th>
+                <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
-                <tr key={order.id}>
-                  <td className="px-4 py-2">{order.id.slice(0, 8)}</td>
-                  <td className="px-4 py-2"><Badge>{order.status}</Badge></td>
-                  <td className="px-4 py-2 text-blue-600 font-semibold">{order.total.toLocaleString()}₫</td>
-                  <td className="px-4 py-2">{new Date(order.createdAt).toLocaleString("vi-VN")}</td>
+              {filteredOrders.map((order) => [
+                <tr key={order.id} className="hover:bg-pink-50 transition-all duration-200">
+                  <td className="px-4 py-2 font-mono font-semibold text-pink-600">{order.id.slice(0, 8)}</td>
                   <td className="px-4 py-2">
-                    <Link href={`/profile/orders/${order.id}`}>
-                      <Button size="sm" variant="outline">Xem</Button>
-                    </Link>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${statusMap[order.status]?.color || 'bg-gray-300'}`}>{statusMap[order.status]?.label || order.status}</span>
                   </td>
-                </tr>
-              ))}
+                  <td className="px-4 py-2 text-blue-600 font-semibold animate-fade-in">{order.total.toLocaleString()}₫</td>
+                  <td className="px-4 py-2">{new Date(order.createdAt).toLocaleString("vi-VN")}</td>
+                  <td className="px-4 py-2 text-center">
+                    <button
+                      onClick={async () => {
+                        if (expandedOrder === order.id) {
+                          setExpandedOrder(null);
+                          setExpandedOrderDetail(null);
+                        } else {
+                          setLoadingDetail(true);
+                          setExpandedOrder(order.id);
+                          try {
+                            const res = await fetch(`/api/orders/${order.id}`);
+                            const detail = await res.json();
+                            setExpandedOrderDetail(detail);
+                          } finally {
+                            setLoadingDetail(false);
+                          }
+                        }
+                      }}
+                      className="p-2 rounded-full hover:bg-pink-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-300"
+                      title="Xem chi tiết đơn hàng"
+                    >
+                      {expandedOrder === order.id ? <ChevronUp className="w-5 h-5 text-pink-400" /> : <ChevronDown className="w-5 h-5 text-pink-400" />}
+                    </button>
+                  </td>
+                </tr>,
+                expandedOrder === order.id && (
+                  <tr key={order.id + '-detail'}>
+                    <td colSpan={5} className="bg-white/80 p-4 rounded-b-xl shadow-inner animate-fade-in">
+                      {loadingDetail ? (
+                        <div className="flex items-center justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-pink-400" /></div>
+                      ) : expandedOrderDetail ? (
+                        <OrderDetail order={expandedOrderDetail} onClose={() => setExpandedOrder(null)} />
+                      ) : null}
+                    </td>
+                  </tr>
+                )
+              ])}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Order Detail Modal */}
-      {selectedOrder && (() => {
-        const o = orders.find(o => o.id === selectedOrder)!;
-        return (
-          <OrderDetail
-            order={{
-              ...o,
-              status: o.status as OrderStatus,
-              shippingAddress: o.address?.address || '',
-              paymentMethod: o.payment?.method || '',
-              createdAt: new Date(o.createdAt),
-              updatedAt: new Date(o.updatedAt),
-              items: o.items as any,
-              address: o.address as any,
-              payment: o.payment as any,
-            }}
-            onClose={() => setSelectedOrder(null)}
-          />
-        );
-      })()}
     </div>
   );
 } 

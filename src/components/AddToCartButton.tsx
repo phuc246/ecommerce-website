@@ -2,23 +2,39 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { toast } from 'sonner';
 import { ShoppingCart, Loader2, Check } from "lucide-react";
+import { useCart } from "@/hooks/use-cart";
 
 interface AddToCartButtonProps {
   productId: string;
+  colorId?: string;
+  sizeId?: string;
+  quantity?: number;
   iconOnly?: boolean;
   variant?: "pink" | "blue" | "custom";
 }
 
-export default function AddToCartButton({ productId, iconOnly, variant = "blue" }: AddToCartButtonProps) {
+export default function AddToCartButton({ productId, colorId, sizeId, quantity = 1, iconOnly, variant = "blue" }: AddToCartButtonProps) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const { fetchCart } = useCart();
 
   const addToCart = async () => {
     if (!session) {
-      toast.error("Please sign in to add items to cart");
+      toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng!');
+      setTimeout(() => router.push('/login'), 1500);
+      return;
+    }
+    if (!colorId || !sizeId) {
+      toast.error('Vui lòng chọn màu sắc và kích thước!');
+      return;
+    }
+    if (quantity <= 0) {
+      toast.error('Số lượng phải lớn hơn 0!');
       return;
     }
 
@@ -31,19 +47,24 @@ export default function AddToCartButton({ productId, iconOnly, variant = "blue" 
         },
         body: JSON.stringify({
           productId,
-          quantity: 1,
+          colorId,
+          sizeId,
+          quantity,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to add to cart");
+        throw new Error(data.error || "Failed to add to cart");
       }
 
-      toast.success("Added to cart!");
+      await fetchCart();
+      toast.success(data.message || "Đã thêm vào giỏ hàng!");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 500);
-    } catch (error) {
-      toast.error("Failed to add to cart");
+    } catch (error: any) {
+      toast.error(error.message || "Thêm vào giỏ hàng thất bại!");
     } finally {
       setLoading(false);
     }
@@ -68,7 +89,7 @@ export default function AddToCartButton({ productId, iconOnly, variant = "blue" 
       {iconOnly ? (
         loading ? <Loader2 className="animate-spin" size={28} /> : success ? <Check size={28} /> : <ShoppingCart size={28} />
       ) : (
-        loading ? "Adding..." : success ? "Added!" : "Add to Cart"
+        loading ? "Đang thêm..." : success ? "Đã thêm!" : "Thêm vào giỏ hàng"
       )}
     </button>
   );

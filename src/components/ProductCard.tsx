@@ -5,9 +5,10 @@ import AddToCartButton from "./AddToCartButton";
 import { useState, useEffect } from "react";
 import { Heart, Eye, ShoppingCart } from "lucide-react";
 import { useWishlist } from '@/hooks/use-wishlist';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import './ProductCard.css';
 import { motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
 
 interface ProductCardProps {
   product: Product & {
@@ -23,18 +24,23 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, isHighlighted, hideName }: ProductCardProps) {
   const { isWishlisted, addToWishlist, removeFromWishlist, loading } = useWishlist();
+  const { data: session } = useSession();
   const wishlisted = isWishlisted(product.id);
   const toggleWishlist = async () => {
+    if (!session || !session.user) {
+      toast.error('Vui lòng đăng nhập để sử dụng tính năng yêu thích!');
+      return;
+    }
     try {
       if (wishlisted) {
-        await removeFromWishlist(product.id);
-        toast.success('Đã bỏ khỏi yêu thích!');
+        const ok = await removeFromWishlist(product.id);
+        // Không hiện toast ở đây, đã xử lý ở hook
       } else {
-        await addToWishlist(product.id);
-        toast.success('Đã lưu vào yêu thích!');
+        const ok = await addToWishlist(product.id);
+        // Không hiện toast ở đây, đã xử lý ở hook
       }
-    } catch (e) {
-      toast.error('Lỗi!');
+    } catch {
+      // Không hiện toast ở đây, đã xử lý ở hook
     }
   };
 
@@ -63,7 +69,6 @@ export default function ProductCard({ product, isHighlighted, hideName }: Produc
           >
             <Heart size={28} className={wishlisted ? 'text-red-500 fill-red-500' : ''} fill={wishlisted ? 'currentColor' : 'none'} />
           </button>
-          <AddToCartButton productId={product.id} iconOnly variant="custom" />
         </div>
       </div>
       {/* Info section chỉ hiển thị category, đổ bóng sâu */}

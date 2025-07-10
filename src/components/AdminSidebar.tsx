@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Home, ShoppingBag, List, Image as ImageIcon, Users, Settings, LogOut, Tag, ClipboardList, ShoppingCart, Flame, Star, Video } from "lucide-react";
+import { Home, ShoppingBag, List, Image as ImageIcon, Users, Settings, LogOut, Tag, ClipboardList, ShoppingCart, Flame, Star, Video, Briefcase, PartyPopper } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -13,12 +13,13 @@ const navItems = [
   { name: "Đơn hàng", href: "/admin/orders", icon: ShoppingCart },
   { name: "Quản lý kho", href: "/admin/inventory", icon: ClipboardList },
   { name: "Danh mục", href: "/admin/categories", icon: List },
-  { name: "Thuộc tính", href: "/admin/products/attributes", icon: Star },
+  { name: "Thuộc tính", href: "/admin/products/attributes", icon: Briefcase }, // hoặc PartyPopper nếu muốn icon "đi chơi"
   { name: "Mã giảm giá", href: "/admin/promotions", icon: Tag },
   { name: "Xu hướng", href: "/admin/trends", icon: Flame },
   { name: "Logo", href: "/admin/logo", icon: ImageIcon },
   { name: "Video Background", href: "/admin/videobg", icon: Video },
   { name: "Người dùng", href: "/admin/users", icon: Users },
+  { name: "Đánh giá", href: "/admin/reviews", icon: Star },
   { name: "Cài đặt", href: "/admin/settings", icon: Settings },
 ];
 
@@ -26,8 +27,8 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 h-[calc(96vh-4rem)] bg-gray-50 backdrop-blur-lg shadow-2xl border-2 border-gray-200 rounded-2xl sticky top-16 z-30 animate-fade-in">
-      <nav className="flex-1 py-8 px-4 space-y-2">
+    <aside className="hidden md:flex flex-col w-64 min-w-0 max-w-xs h-[calc(96vh-4rem)] bg-gray-50 backdrop-blur-lg shadow-2xl border-2 border-gray-200 rounded-2xl sticky top-16 z-30 animate-fade-in overflow-x-hidden">
+      <nav className="flex-1 py-8 px-4 space-y-1">
         {navItems.map((item) => {
           const active = item.href === '/admin/products' 
             ? pathname === item.href 
@@ -44,7 +45,7 @@ export default function AdminSidebar() {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors",
+                  "flex items-center gap-3 px-4 py-2 rounded-lg font-medium transition-colors",
                   active
                     ? "bg-pink-100 text-pink-600 shadow"
                     : "text-gray-700 hover:bg-gray-100 hover:text-pink-600"
@@ -61,7 +62,7 @@ export default function AdminSidebar() {
       <div className="px-4 pb-8">
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg font-medium text-gray-700 hover:bg-gray-100 hover:text-pink-600 transition-colors"
+          className="flex items-center gap-3 w-full px-4 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100 hover:text-pink-600 transition-colors"
         >
           <LogOut className="w-5 h-5" />
           Đăng xuất

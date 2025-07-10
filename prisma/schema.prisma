@@ -8,24 +8,24 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?    @unique
   emailVerified DateTime?
   image         String?
   password      String?
-  role          Role      @default(USER)
-  preferences   Json?     @default("{\"language\": \"vi\", \"favoriteCategories\": [], \"notificationSettings\": {\"sms\": false, \"email\": true}}")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  role          Role       @default(USER)
+  preferences   Json?      @default("{\"language\": \"vi\", \"favoriteCategories\": [], \"notificationSettings\": {\"sms\": false, \"email\": true}}")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   accounts      Account[]
   addresses     Address[]
   cart          Cart?
+  logs          Log[]      @relation("UserLogs")
   orders        Order[]
   payments      Payment[]
   reviews       Review[]
   sessions      Session[]
-  logs          Log[]     @relation("UserLogs")
   wishlist      Wishlist[]
 }
 
@@ -33,27 +33,38 @@ model Product {
   id                String             @id @default(cuid())
   name              String
   description       String
-  image             String // Main product image (fallback)
-  images            String[]           @default([]) // General images for the product
+  image             String
   categoryId        String
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  sku               String? // Fallback SKU
+  sku               String?
   category          Category           @relation(fields: [categoryId], references: [id])
-  reviews           Review[]
   productAttributes ProductAttribute[]
   productTrends     ProductTrend[]
   variants          ProductVariant[]
+  reviews           Review[]
   wishlist          Wishlist[]
+  images            ProductImage[]     // Thêm quan hệ mới
+}
+
+model ProductImage {
+  id          String   @id @default(cuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  url         String
+  isMain      Boolean  @default(false) // true: ảnh chính, false: ảnh phụ
+  order       Int?     // Thứ tự hiển thị (0: chính, 1-6: phụ)
+  altText     String?
+  createdAt   DateTime @default(now())
 }
 
 model Category {
   id            String     @id @default(cuid())
   name          String
-  image         String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   parentId      String?
+  image         String?
   parent        Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id])
   subcategories Category[] @relation("CategoryToSubcategory")
   products      Product[]
@@ -71,35 +82,45 @@ model Cart {
 model CartItem {
   id               String         @id @default(cuid())
   cartId           String
-  productVariantId String
   quantity         Int
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  productVariantId String
   cart             Cart           @relation(fields: [cartId], references: [id])
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  user            User        @relation(fields: [userId], references: [id])
-  userId          String
-  items           OrderItem[]
-  total           Float
-  status          OrderStatus @default(PENDING)
-  shippingAddress String
-  paymentMethod   String
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                String      @id @default(cuid())
+  userId            String
+  status            OrderStatus @default(PENDING)
+  total             Float
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  paymentMethod     String
+  shippingAddress   String
+  phone             String?
+  cancelledAt       DateTime?
+  deliveredAt       DateTime?
+  pendingAt         DateTime?
+  processingAt      DateTime?
+  shippedAt         DateTime?
+  discountAmount    Float?
+  promotionCode     String?
+  cancelReason      String?
+  cancelRequestedAt DateTime?
+  user              User        @relation(fields: [userId], references: [id])
+  items             OrderItem[]
 }
 
 model OrderItem {
   id               String         @id @default(cuid())
-  order            Order          @relation(fields: [orderId], references: [id])
   orderId          String
-  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
-  productVariantId String
   quantity         Int
   price            Float
+  productVariantId String
+  order            Order          @relation(fields: [orderId], references: [id])
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
 }
 
 model Logo {
@@ -146,6 +167,7 @@ model Review {
   orderId   String
   rating    Int
   comment   String
+  reply     String?   // Trả lời của admin
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   product   Product  @relation(fields: [productId], references: [id])
@@ -180,7 +202,6 @@ model Session {
 
 model ProductVariant {
   id         String      @id @default(cuid())
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId  String
   color      String
   colorHex   String?
@@ -192,6 +213,7 @@ model ProductVariant {
   sku        String?
   cartItems  CartItem[]
   orderItems OrderItem[]
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, color, size])
 }
@@ -205,10 +227,10 @@ model Attribute {
 }
 
 model ProductAttribute {
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId   String
-  attribute   Attribute @relation(fields: [attributeId], references: [id])
   attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@id([productId, attributeId])
 }
@@ -233,7 +255,6 @@ model Trend {
 model Promotion {
   id              String       @id @default(cuid())
   code            String       @unique
-  backgroundImage String?
   discountType    DiscountType
   discountValue   Float
   startDate       DateTime
@@ -245,39 +266,40 @@ model Promotion {
   updatedAt       DateTime     @updatedAt
   title           String?
   description     String?
+  backgroundImage String?
 }
 
 model Log {
   id        String   @id @default(cuid())
-  level     String
-  message   String
-  details   Json?
   action    String
   entity    String
   entityId  String
-  adminId   String?
-  admin     User?    @relation("UserLogs", fields: [adminId], references: [id])
-  userEmail String?
   createdAt DateTime @default(now())
+  adminId   String?
+  details   Json?
+  level     String
+  message   String
   updatedAt DateTime @updatedAt
+  userEmail String?
+  admin     User?    @relation("UserLogs", fields: [adminId], references: [id])
 }
 
 model ProductTrend {
-  product    Product  @relation(fields: [productId], references: [id])
   productId  String
-  trend      Trend    @relation(fields: [trendId], references: [id])
   trendId    String
   assignedAt DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id])
+  trend      Trend    @relation(fields: [trendId], references: [id])
 
   @@id([productId, trendId])
 }
 
 model Wishlist {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
+  id        String  @id @default(cuid())
   userId    String
-  product   Product  @relation(fields: [productId], references: [id])
   productId String
+  product   Product @relation(fields: [productId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
 
   @@unique([userId, productId])
 }
@@ -292,7 +314,8 @@ enum OrderStatus {
   PROCESSING
   SHIPPED
   DELIVERED
-  CANCELED
+  CANCELLED
+  CANCEL_REQUESTED
 }
 
 enum DiscountType {

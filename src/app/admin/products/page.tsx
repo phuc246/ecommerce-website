@@ -19,7 +19,8 @@ interface Log {
   createdAt: string;
   userEmail: string | null;
   action: string;
-  detail: string | null;
+  detail?: string | null;
+  details?: any;
 }
 
 export default function AdminProductsPage() {
@@ -55,7 +56,7 @@ export default function AdminProductsPage() {
       if (!response.ok) throw new Error("Failed to fetch products");
       let data = await response.json();
       // Sắp xếp sản phẩm mới nhất lên đầu
-      data = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      data = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setProducts(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "An error occurred");
@@ -146,15 +147,16 @@ export default function AdminProductsPage() {
 
   function renderProductLogDetail(log: Log) {
     try {
-      let detail = log.detail;
+      let detail = log.details ?? log.detail;
       if (typeof detail === 'string') {
         try { detail = JSON.parse(detail); } catch {}
       }
       let name = '';
       if (typeof detail === 'object' && detail !== null) {
         const d = detail as any;
-        name = d.name || d.after?.name || d.before?.name || '';
+        name = d.after?.name || d.before?.name || d.name || '';
       }
+      if (!name) name = 'Không rõ tên sản phẩm';
       if (log.action.toLowerCase().includes('create')) {
         return `Tạo sản phẩm: ${name}`;
       }
@@ -165,7 +167,7 @@ export default function AdminProductsPage() {
         return `Xoá sản phẩm: ${name}`;
       }
     } catch {
-      return log.detail || '';
+      return log.details || log.detail || '';
     }
   }
 
@@ -190,11 +192,9 @@ export default function AdminProductsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Quản lý sản phẩm</h1>
-        <Button asChild>
-          <Link href="/admin/products/add">
-            <PlusCircle className="mr-2 h-4 w-4" /> Thêm sản phẩm
-          </Link>
-        </Button>
+        <Link href="/admin/products/add" className="inline-flex items-center justify-center rounded-lg font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none gap-2 bg-pink-500 text-white hover:bg-pink-600 h-10 px-4 py-2 text-base">
+          <PlusCircle className="mr-2 h-4 w-4" /> Thêm sản phẩm
+        </Link>
       </div>
 
       <div className="mb-4">
