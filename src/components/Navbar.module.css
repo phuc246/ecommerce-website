@@ -1,0 +1,8 @@
+.toast-top-var {
+  position: fixed;
+  right: 2rem;
+  z-index: 200;
+  min-width: 200px;
+  max-width: 240px;
+  top: var(--toast-top, 16px);
+} 

@@ -73,13 +73,12 @@ export async function GET(request: Request) {
     // Map lại để thêm salePrice (lấy giá nhỏ nhất trong các variants nếu có, hoặc undefined)
     const productsWithVariants = products.map(product => {
       // Gom nhóm các variant theo color
-      const variantGroups: Record<string, { color: string; colorHex?: string; image?: string; sku?: string; sizes: any[] }> = {};
+      const variantGroups: Record<string, { color: string; image?: string; sku?: string; sizes: any[] }> = {};
       for (const v of product.variants) {
-        const key = v.color + (v.colorHex || "");
+        const key = v.color;
         if (!variantGroups[key]) {
           variantGroups[key] = {
             color: v.color,
-            colorHex: v.colorHex ?? undefined,
             image: v.image ?? undefined,
             sku: v.sku ?? undefined,
             sizes: [],
@@ -96,10 +95,10 @@ export async function GET(request: Request) {
       let colors: { name: string; value: string }[] = [];
       const colorMap = new Map();
       for (const v of product.variants) {
-        if (v.color && v.colorHex) {
-          const key = v.colorHex;
+        if (v.color) {
+          const key = v.color;
           if (!colorMap.has(key)) {
-            colorMap.set(key, { name: v.color, value: v.colorHex });
+            colorMap.set(key, { name: v.color, value: v.color });
           }
         }
       }

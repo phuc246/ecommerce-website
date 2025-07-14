@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { signIn, useSession } from "next-auth/react";
 import { Eye, EyeOff } from "lucide-react";
 import VideoBackground from "@/components/VideoBackground";
+import { sendPosthogEvent } from '@/lib/utils';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +23,6 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (status === "authenticated") {
-      console.log("User is authenticated:", session?.user);
       if (session?.user?.role === "ADMIN") {
         router.push("/admin");
       } else {
@@ -47,7 +47,6 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      console.log("Attempting login with:", formData.email);
       
       const result = await signIn("credentials", {
         redirect: false,
@@ -55,10 +54,7 @@ export default function LoginPage() {
         password: formData.password,
       });
 
-      console.log("Login result:", result);
-
       if (result?.error) {
-        console.error("Login error:", result.error);
         toast.error(result.error || "Đăng nhập thất bại");
         setIsLoading(false);
         return;
@@ -80,7 +76,6 @@ export default function LoginPage() {
         window.location.href = "/";
       }
     } catch (error) {
-      console.error("Login error:", error);
       toast.error("Đăng nhập thất bại");
       setIsLoading(false);
     }

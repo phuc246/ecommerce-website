@@ -64,7 +64,6 @@ export async function GET(
     const variants = product.variants.map(v => ({
       id: v.id,
       color: v.color,
-      colorHex: v.colorHex,
       size: v.size,
       stock: v.stock,
       sku: v.sku,
@@ -83,7 +82,7 @@ export async function GET(
     const trendId = product.productTrends[0]?.trendId || null;
 
     // Lấy tất cả ProductImage cho sản phẩm này
-    const productImages = await prisma.ProductImage.findMany({
+    const productImages = await prisma.productImage.findMany({
       where: { productId: product.id },
       orderBy: [
         { isMain: 'desc' }, // Ảnh chính lên đầu
@@ -91,6 +90,16 @@ export async function GET(
         { createdAt: 'asc' },
       ],
     });
+
+    // Tính tổng số lượng đã bán của tất cả biến thể sản phẩm này trong các đơn hàng DELIVERED
+    const soldAgg = await prisma.orderItem.aggregate({
+      where: {
+        productVariant: { productId: product.id },
+        order: { status: 'DELIVERED' }
+      },
+      _sum: { quantity: true }
+    });
+    const sold = soldAgg._sum.quantity || 0;
 
     return NextResponse.json({
       ...product,
@@ -107,6 +116,7 @@ export async function GET(
       categoryPath,
       attributeIds,
       trendId,
+      sold,
     });
 
   } catch (error) {

@@ -57,23 +57,23 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 flex flex-wrap gap-4 items-end mb-4">
+    <div className="bg-white/10 rounded-lg shadow p-4 flex flex-wrap gap-4 items-end mb-4">
       <div>
-        <label className="block text-xs font-semibold mb-1">Tên sản phẩm</label>
+        <label className="block text-xs font-semibold mb-1 ">Tên sản phẩm</label>
         <input
           type="text"
-          className="border rounded px-2 py-1 text-sm"
+          className="border rounded px-2 py-1 text-sm bg-white/20 placeholder:text-black placeholder:font-semibold"
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Nhập tên sản phẩm..."
         />
       </div>
       <div>
-        <label className="block text-xs font-semibold mb-1">Khoảng giá</label>
+        <label className="block text-xs font-semibold mb-1 ">Khoảng giá</label>
         <div className="flex gap-2">
           <input
             type="number"
-            className="border rounded px-2 py-1 text-sm w-20"
+            className="border rounded px-2 py-1 text-sm w-20 bg-white/20 placeholder:text-black placeholder:font-semibold"
             value={minPrice}
             onChange={e => setMinPrice(e.target.value)}
             placeholder="Từ"
@@ -82,7 +82,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
           <span>-</span>
           <input
             type="number"
-            className="border rounded px-2 py-1 text-sm w-20"
+            className="border rounded px-2 py-1 text-sm w-20 bg-white/20 placeholder:text-black placeholder:font-semibold"
             value={maxPrice}
             onChange={e => setMaxPrice(e.target.value)}
             placeholder="Đến"
@@ -93,7 +93,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
       <div>
         <label className="block text-xs font-semibold mb-1">Danh mục</label>
         <select
-          className="border rounded px-2 py-1 text-sm"
+          className="border rounded px-2 py-1 text-sm bg-white/20 placeholder:text-black placeholder:font-semibold"
           value={category}
           onChange={e => setCategory(e.target.value)}
           title="Chọn danh mục"
@@ -106,7 +106,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
       </div>
       <div>
         <label className="block text-xs font-semibold mb-1">Thuộc tính</label>
-        <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 max-h-20 overflow-y-auto min-w-[120px] border rounded px-2 py-1 bg-white">
+        <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 max-h-20 overflow-y-auto min-w-[120px] border rounded px-2 py-1 bg-white/20">
           {attributes.map(a => (
             <label key={a.id} className="flex items-center gap-1 text-sm whitespace-nowrap">
               <input
@@ -127,7 +127,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
       </div>
       <div>
         <label className="block text-xs font-semibold mb-1">Màu sắc</label>
-        <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 max-h-20 overflow-y-auto min-w-[100px] border rounded px-2 py-1 bg-white">
+        <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 max-h-20 overflow-y-auto min-w-[100px] border rounded px-2 py-1 bg-white/20">
           {colors.map(color => (
             <label key={color} className="flex items-center gap-1 text-sm whitespace-nowrap">
               <input
@@ -148,7 +148,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
       </div>
       <div>
         <label className="block text-xs font-semibold mb-1">Size</label>
-        <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 max-h-20 overflow-y-auto min-w-[80px] border rounded px-2 py-1 bg-white">
+        <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 max-h-20 overflow-y-auto min-w-[80px] border rounded px-2 py-1 bg-white/20">
           {sizes.map(size => (
             <label key={size} className="flex items-center gap-1 text-sm whitespace-nowrap">
               <input
@@ -183,7 +183,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
           Tìm kiếm
         </button>
         <button
-          className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-4 py-2 rounded shadow"
+          className="bg-fuchsia-300 hover:bg-gray-300 text-gray-700 font-semibold px-4 py-2 rounded shadow"
           onClick={handleReset}
           type="button"
         >

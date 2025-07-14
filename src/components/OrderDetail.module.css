@@ -1,0 +1,3 @@
+.order-color-dynamic {
+  color: var(--order-color, #000);
+} 

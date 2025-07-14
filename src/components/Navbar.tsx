@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { ShoppingCart, Search, Menu, X } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import Image from "next/image";
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useLogo } from '@/hooks/useLogo';
+import OrderStatusToast from './OrderStatusToast';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -19,6 +20,20 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { url: logoUrl, isCircular, isLoading: logoLoading, refresh: refreshLogo } = useLogo();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [orderCount, setOrderCount] = useState(0);
+  const [orderChanged, setOrderChanged] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const prevOrderCount = useRef(0);
+  const [showOrderPanel, setShowOrderPanel] = useState(false);
+  const [unseenOrderIds, setUnseenOrderIds] = useState<string[]>([]);
+  const [currentPanelIndex, setCurrentPanelIndex] = useState(0);
+  const panelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [pendingNavigate, setPendingNavigate] = useState(false);
+  // --- New: unseen by status ---
+  const [hasUnseen, setHasUnseen] = useState(false);
+  // Quản lý trạng thái đóng/mở từng toast
+  const [closedToasts, setClosedToasts] = useState<string[]>([]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -35,6 +50,92 @@ export default function Navbar() {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  // Track unseen orders in localStorage
+  useEffect(() => {
+    function updateUnseenOrders() {
+      if (session?.user) {
+        fetch('/api/orders')
+          .then(res => res.json())
+          .then(data => {
+            setOrders(data);
+            setOrderCount(data.length);
+            // --- New: check unseen by status ---
+            const seenStatus = JSON.parse(localStorage.getItem('ordersSeenStatus') || '[]');
+            let unseen = false;
+            let unseenIds: string[] = [];
+            data.forEach((order: any) => {
+              const found = seenStatus.find((s: any) => s.id === order.id && s.status === order.status);
+              if (!found) {
+                unseen = true;
+                unseenIds.push(order.id);
+              }
+            });
+            setHasUnseen(unseen);
+            setUnseenOrderIds(unseenIds);
+            if (prevOrderCount.current !== 0 && prevOrderCount.current !== data.length) {
+              setOrderChanged(true);
+              setTimeout(() => setOrderChanged(false), 2000);
+            }
+            prevOrderCount.current = data.length;
+          });
+      }
+    }
+    updateUnseenOrders();
+    // Lắng nghe sự kiện storage để cập nhật khi localStorage thay đổi từ tab khác hoặc khi click từng đơn
+    window.addEventListener('storage', updateUnseenOrders);
+    return () => {
+      window.removeEventListener('storage', updateUnseenOrders);
+    };
+  }, [session?.user]);
+
+  // Show panel when clicking badge
+  const handleOrderBadgeClick = () => {
+    setDropdownOpen(false);
+    // Không chặn event, luôn cho phép chuyển trang
+  };
+
+  // Animate through orders if multiple
+  useEffect(() => {
+    if (!showOrderPanel || unseenOrderIds.length === 0) return;
+    if (orders.length <= 1) {
+      panelTimeoutRef.current = setTimeout(() => setShowOrderPanel(false), 2000);
+      return;
+    }
+    if (currentPanelIndex < unseenOrderIds.length - 1) {
+      panelTimeoutRef.current = setTimeout(() => setCurrentPanelIndex(i => i + 1), 1500);
+    } else {
+      panelTimeoutRef.current = setTimeout(() => setShowOrderPanel(false), 2000);
+    }
+    return () => {
+      if (panelTimeoutRef.current) clearTimeout(panelTimeoutRef.current);
+    };
+  }, [showOrderPanel, currentPanelIndex, unseenOrderIds.length, orders.length]);
+
+  // After panel closes, navigate if needed
+  useEffect(() => {
+    if (!showOrderPanel && pendingNavigate) {
+      setPendingNavigate(false);
+      window.location.href = '/profile/orders';
+    }
+  }, [showOrderPanel, pendingNavigate]);
+
+  // Reset closedToasts khi unseenOrderIds thay đổi (ví dụ: reload, có đơn mới)
+  useEffect(() => {
+    setClosedToasts([]);
+  }, [unseenOrderIds.join(",")]);
+
+  // Helper to get order status label
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING': return 'Chờ xác nhận';
+      case 'PROCESSING': return 'Đang xử lý';
+      case 'SHIPPED': return 'Đang giao';
+      case 'DELIVERED': return 'Đã giao';
+      case 'CANCELLED': return 'Đã hủy';
+      default: return status;
+    }
+  };
 
   return (
     <motion.nav
@@ -89,10 +190,16 @@ export default function Navbar() {
               <div className="hidden sm:flex items-center gap-4 ml-4">
                 {session?.user ? (
                   <>
-                    <DropdownMenu>
+                    <DropdownMenu onOpenChange={setDropdownOpen}>
                       <DropdownMenuTrigger asChild>
-                        <button className="flex items-center gap-2 focus:outline-none">
-                          <span className="hidden sm:inline text-sm font-medium">{session.user.name || session.user.email}</span>
+                        <button className="flex items-center gap-2 focus:outline-none relative">
+                          <span className="hidden sm:inline text-sm font-medium relative">
+                            {session.user.name || session.user.email}
+                            {/* Red dot notification if there are unseen orders */}
+                            {hasUnseen && (
+                              <span className="absolute -top-2 -right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                            )}
+                          </span>
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -111,7 +218,15 @@ export default function Navbar() {
                               <Link href="/profile">Hồ sơ</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                              <Link href="/profile/orders">Đơn hàng của tôi</Link>
+                              <Link href="/profile/orders" className="flex items-center gap-2" onClick={handleOrderBadgeClick}>
+                                Đơn hàng của tôi
+                                {/* Badge chỉ hiện khi có đơn mới/chưa xem */}
+                                {hasUnseen && (
+                                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-pink-500 text-white animate-pulse">
+                                    {unseenOrderIds.length}
+                                  </span>
+                                )}
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Đăng xuất</DropdownMenuItem>
                           </>
@@ -157,6 +272,36 @@ export default function Navbar() {
           {!session?.user && (
             <Link href="/login" className="text-2xl font-bold text-white bg-indigo-600 px-6 py-2 rounded-lg shadow hover:bg-indigo-700 transition-colors" onClick={() => setMobileMenuOpen(false)}>Đăng nhập</Link>
           )}
+        </div>
+      )}
+      {/* Notification panel for new orders */}
+      {/* Hiển thị nhiều toast, mỗi toast cho một đơn hàng mới/chưa xem */}
+      {hasUnseen && unseenOrderIds.length > 0 && orders.length > 0 && (
+        <div className="fixed top-6 right-8 flex flex-col gap-4 z-[200]">
+          {unseenOrderIds.filter(id => !closedToasts.includes(id)).map((orderId) => {
+            const order = orders.find((o: any) => o.id === orderId);
+            if (!order) return null;
+            const getItemDisplayPrice = (item: any) => {
+              const salePrice = item.salePrice;
+              if (typeof salePrice === 'number' && salePrice > 0 && salePrice < item.price) {
+                return salePrice;
+              }
+              return item.price;
+            };
+            const subtotal = (order.items || []).reduce((sum: number, item: any) => sum + (getItemDisplayPrice(item) * item.quantity), 0);
+            const total = subtotal + (order.shippingFee || 0) - (order.discountAmount || 0);
+            return (
+              <OrderStatusToast
+                key={order.id}
+                open={true}
+                onClose={() => setClosedToasts(prev => [...prev, order.id])}
+                orderId={order.id}
+                status={order.status}
+                total={total}
+                itemCount={order.items?.length || 0}
+              />
+            );
+          })}
         </div>
       )}
     </motion.nav>

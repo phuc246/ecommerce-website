@@ -12,6 +12,24 @@ import { motion } from "framer-motion";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { ResponsiveLine } from '@nivo/line';
+import { ResponsiveBar } from '@nivo/bar';
+import { ResponsivePie } from '@nivo/pie';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+// @ts-ignore
+import 'jspdf-autotable';
+import styles from './dashboard.module.css';
+import CardRevenue from './CardRevenue';
+import CardOrders from './CardOrders';
+import CardUsers from './CardUsers';
+import CardProducts from './CardProducts';
+
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (...args: any[]) => jsPDF;
+  }
+}
 
 const COLORS = ["#6366f1", "#f472b6", "#34d399", "#fbbf24", "#f87171", "#60a5fa"];
 
@@ -24,11 +42,11 @@ export default function AdminDashboard() {
     totalProducts: 0,
   });
   // Biểu đồ
-  const [revenueByMonth, setRevenueByMonth] = useState([]);
-  const [ordersByStatus, setOrdersByStatus] = useState([]);
-  const [topProducts, setTopProducts] = useState([]);
-  const [usersByMonth, setUsersByMonth] = useState([]);
-  const [ordersByMonth, setOrdersByMonth] = useState([]);
+  const [revenueByMonth, setRevenueByMonth] = useState<{ month: string, revenue: number }[]>([]);
+  const [ordersByStatus, setOrdersByStatus] = useState<{ status: string, count: number }[]>([]);
+  const [topProducts, setTopProducts] = useState<{ name: string, sold: number }[]>([]);
+  const [usersByMonth, setUsersByMonth] = useState<{ month: string, users: number }[]>([]);
+  const [ordersByMonth, setOrdersByMonth] = useState<{ month: string, orders: number }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -101,132 +119,196 @@ export default function AdminDashboard() {
   // Helper: tháng
   const months = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
   const revenueData = months.map((m) => {
-    const found = revenueByMonth.find((d: any) => String(d.month) === m);
+    const found = revenueByMonth.find((d: any) => {
+      // d.month dạng 'YYYY-MM', lấy số tháng
+      const monthNum = d.month?.split('-')[1]?.replace(/^0/, '') || d.month;
+      return String(monthNum) === m;
+    });
     return { month: `Th${m}`, revenue: found ? Number(found.revenue) : 0 };
   });
   const usersData = months.map((m) => {
-    const found = usersByMonth.find((d: any) => String(d.month) === m);
-    return { month: `Th${m}`, users: found ? Number(found.count) : 0 };
+    const found = usersByMonth.find((d: any) => {
+      const monthNum = d.month?.split('-')[1]?.replace(/^0/, '') || d.month;
+      return String(monthNum) === m;
+    });
+    return { month: `Th${m}`, users: found ? Number(found.users) : 0 };
   });
   const ordersData = months.map((m) => {
-    const found = ordersByMonth.find((d: any) => String(d.month) === m);
-    return { month: `Th${m}`, orders: found ? Number(found.count) : 0 };
+    const found = ordersByMonth.find((d: any) => {
+      const monthNum = d.month?.split('-')[1]?.replace(/^0/, '') || d.month;
+      return String(monthNum) === m;
+    });
+    return { month: `Th${m}`, orders: found ? Number(found.orders) : 0 };
   });
+
+  // Hàm xuất Excel
+  const exportExcel = () => {
+    const wsData = [
+      ['Tháng', 'Doanh thu', 'Người dùng mới', 'Đơn hàng'],
+      ...months.map((m, i) => [
+        `Th${m}`,
+        revenueData[i].revenue,
+        usersData[i].users,
+        ordersData[i].orders
+      ])
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dashboard');
+    XLSX.writeFile(wb, 'dashboard_report.xlsx');
+  };
+  // Hàm xuất PDF
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Báo cáo Dashboard', 14, 16);
+    const tableData = months.map((m, i) => [
+      `Th${m}`,
+      revenueData[i].revenue,
+      usersData[i].users,
+      ordersData[i].orders
+    ]);
+    doc.autoTable({
+      head: [['Tháng', 'Doanh thu', 'Người dùng mới', 'Đơn hàng']],
+      body: tableData,
+      startY: 24
+    });
+    doc.save('dashboard_report.pdf');
+  };
 
   return (
     <div className="p-6 space-y-8">
+      <div className="flex justify-between items-center mb-4">
+        <div>
       <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
       <p className="mt-2 text-sm text-gray-700">Tổng quan về hoạt động của cửa hàng</p>
-
+        </div>
+        <div className="flex gap-2">
+          <button onClick={exportExcel} className="px-4 py-2 bg-green-500 text-white rounded-lg font-bold shadow hover:bg-green-600 transition">Xuất Excel</button>
+          <button onClick={exportPDF} className="px-4 py-2 bg-blue-500 text-white rounded-lg font-bold shadow hover:bg-blue-600 transition">Xuất PDF</button>
+        </div>
+      </div>
       {/* Card số liệu tổng quan */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats_cards.map((item, i) => (
-          <motion.div
-            key={item.name}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1, type: "spring" }}
-            className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${item.color} shadow-lg p-6 flex flex-col items-start`}
-          >
-            <div className="absolute right-4 top-4 opacity-20 text-white text-7xl">
-              <item.icon className="w-16 h-16" />
-            </div>
-            <div className="z-10">
-              <div className="text-white text-lg font-medium mb-2 flex items-center gap-2">
-                <item.icon className="w-6 h-6" />
-                {item.name}
-              </div>
-              <div className="text-3xl font-bold text-white">
-                <CountUp end={item.value} duration={1.2} separator="," prefix={item.name === "Doanh thu" ? "₫" : ""} />
-              </div>
-            </div>
-          </motion.div>
-        ))}
+        <CardRevenue />
+        <CardOrders />
+        <CardUsers />
+        <CardProducts />
       </div>
-
-      {/* Biểu đồ doanh thu theo tháng */}
-      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white rounded-xl shadow p-6">
+      {/* Hàng 2: Doanh thu & Người dùng mới */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4 text-indigo-700">Doanh thu theo tháng</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={revenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis tickFormatter={v => v.toLocaleString()} />
-            <Tooltip formatter={v => v.toLocaleString()} />
-            <Line type="monotone" dataKey="revenue" stroke="#f472b6" strokeWidth={3} activeDot={{ r: 8 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Biểu đồ người dùng mới theo tháng */}
-      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white rounded-xl shadow p-6">
+          <div className={styles.chartContainer}>
+            <ResponsiveLine
+              data={[{
+                id: 'Doanh thu',
+                data: revenueData.map(d => ({ x: d.month, y: d.revenue }))
+              }]}
+              margin={{ top: 30, right: 30, bottom: 50, left: 60 }}
+              xScale={{ type: 'point' }}
+              yScale={{ type: 'linear', min: 0 }}
+              axisBottom={{ legend: 'Tháng', legendOffset: 36, legendPosition: 'middle' }}
+              axisLeft={{ legend: 'Doanh thu', legendOffset: -50, legendPosition: 'middle' }}
+              colors={["#f472b6"]}
+              pointSize={10}
+              pointColor={{ theme: 'background' }}
+              pointBorderWidth={2}
+              pointBorderColor={{ from: 'serieColor' }}
+              enableArea
+              areaOpacity={0.15}
+              useMesh
+              theme={{ axis: { ticks: { text: { fontSize: 14 } } } }}
+            />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4 text-green-700">Người dùng mới theo tháng</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={usersData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="users" fill="#34d399" radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Biểu đồ số lượng đơn hàng theo tháng */}
-      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white rounded-xl shadow p-6">
+          <div className={styles.chartContainer}>
+            <ResponsiveBar
+              data={usersData}
+              keys={['users']}
+              indexBy="month"
+              margin={{ top: 30, right: 30, bottom: 50, left: 60 }}
+              padding={0.3}
+              colors={["#34d399"]}
+              axisBottom={{ legend: 'Tháng', legendOffset: 36, legendPosition: 'middle' }}
+              axisLeft={{ legend: 'Người dùng', legendOffset: -50, legendPosition: 'middle' }}
+              theme={{ axis: { ticks: { text: { fontSize: 14 } } } }}
+            />
+          </div>
+        </div>
+      </div>
+      {/* Hàng 3: Đơn hàng & Trạng thái đơn */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4 text-blue-700">Đơn hàng theo tháng</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={ordersData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="orders" fill="#60a5fa" radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Biểu đồ trạng thái đơn hàng */}
-      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-white rounded-xl shadow p-6">
+          <div className={styles.chartContainer}>
+            <ResponsiveBar
+              data={ordersData}
+              keys={['orders']}
+              indexBy="month"
+              margin={{ top: 30, right: 30, bottom: 50, left: 60 }}
+              padding={0.3}
+              colors={["#60a5fa"]}
+              axisBottom={{ legend: 'Tháng', legendOffset: 36, legendPosition: 'middle' }}
+              axisLeft={{ legend: 'Đơn hàng', legendOffset: -50, legendPosition: 'middle' }}
+              theme={{ axis: { ticks: { text: { fontSize: 14 } } } }}
+            />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4 text-pink-700">Tỷ lệ trạng thái đơn hàng</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={ordersByStatus}
-              dataKey="_count"
-              nameKey="status"
-              cx="50%"
-              cy="50%"
-              outerRadius={100}
-              label={({ status, _count }) => `${status}: ${_count}`}
-            >
-              {ordersByStatus.map((entry, idx) => (
-                <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-              ))}
-            </Pie>
-            <Legend />
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-      </motion.div>
-
-      {/* Biểu đồ top sản phẩm bán chạy */}
-      <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="bg-white rounded-xl shadow p-6">
+          <div className={styles.chartContainerTall}>
+            <ResponsivePie
+              data={ordersByStatus.map((d, idx) => ({ id: d.status, label: d.status, value: d.count, color: COLORS[idx % COLORS.length] }))}
+              margin={{ top: 30, right: 30, bottom: 50, left: 30 }}
+              innerRadius={0.5}
+              padAngle={1}
+              cornerRadius={5}
+              colors={COLORS}
+              borderWidth={1}
+              borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+              arcLinkLabelsSkipAngle={10}
+              arcLinkLabelsTextColor="#333333"
+              arcLinkLabelsThickness={2}
+              arcLinkLabelsColor={{ from: 'color' }}
+              arcLabelsSkipAngle={10}
+              arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
+              theme={{ labels: { text: { fontSize: 14 } } }}
+              legends={[{
+                anchor: 'bottom',
+                direction: 'row',
+                justify: false,
+                translateY: 36,
+                itemsSpacing: 10,
+                itemWidth: 100,
+                itemHeight: 18,
+                itemTextColor: '#999',
+                symbolSize: 18,
+                symbolShape: 'circle',
+              }]}
+            />
+          </div>
+        </div>
+      </div>
+      {/* Hàng 4: Top sản phẩm bán chạy */}
+      <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4 text-yellow-700">Top 5 sản phẩm bán chạy</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={topProducts} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" allowDecimals={false} />
-            <YAxis dataKey="name" type="category" width={150} />
-            <Tooltip />
-            <Bar dataKey="quantity" fill="#fbbf24" radius={[0, 8, 8, 0]}>
-              {topProducts.map((entry, idx) => (
-                <Cell key={`cell-bar-${idx}`} fill={COLORS[idx % COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </motion.div>
+        <div className={styles.chartContainerTall}>
+          <ResponsiveBar
+            data={topProducts}
+            keys={['sold']}
+            indexBy="name"
+            layout="horizontal"
+            margin={{ top: 30, right: 30, bottom: 50, left: 120 }}
+            padding={0.3}
+            colors={["#fbbf24"]}
+            axisBottom={{ legend: 'Số lượng bán', legendOffset: 36, legendPosition: 'middle' }}
+            axisLeft={{ legend: 'Sản phẩm', legendOffset: -100, legendPosition: 'middle' }}
+            theme={{ axis: { ticks: { text: { fontSize: 14 } } } }}
+          />
+        </div>
+      </div>
     </div>
   );
 } 

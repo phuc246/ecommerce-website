@@ -4,10 +4,16 @@ import { useCart } from '@/hooks/use-cart';
 import { useWishlist } from '@/hooks/use-wishlist';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
 
 export default function CartFloatingButton() {
   const { items, fetchCart } = useCart();
-  useEffect(() => { fetchCart().catch(() => {}); }, []);
+  const { status } = useSession();
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchCart().catch(() => {});
+    }
+  }, [status]);
   return (
     <Link
       href="/cart"

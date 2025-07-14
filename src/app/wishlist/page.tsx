@@ -11,7 +11,7 @@ export default function WishlistPage() {
   type ProductWithAttributes = typeof wishlist[number] & { attributes?: Attribute[] };
 
   return (
-    <div className="container mx-auto px-4 py-8 min-h-[60vh] bg-pink-50 pt-16">
+    <div className="container mx-auto px-4 py-8 min-h-[60vh] pt-16 bg-gradient-to-br from-[#fbc2eb] via-[#a6c1ee] to-[#f68084]">
       <motion.h1
         className="text-3xl md:text-4xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-fuchsia-500 to-pink-600 animate-gradient-x drop-shadow-lg text-center"
         initial={{ scale: 0.8, opacity: 0 }}
@@ -34,7 +34,7 @@ export default function WishlistPage() {
             return (
               <div key={product.id} className={"relative rounded-2xl overflow-hidden shadow-xl group aspect-[3/4] bg-white flex flex-col justify-end animate-fade-in" + (idx % 2 === 0 ? ' animate-delay-100' : ' animate-delay-200')}>
                 <img src={product.image} alt={product.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all duration-300" />
+                <div className="absolute inset-0 group-hover:bg-black/30 transition-all duration-300" />
                 <div className="absolute inset-0 flex items-center justify-center gap-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
                   <Link href={`/products/${product.id}`} className="bg-white/80 hover:bg-pink-400 hover:text-white text-pink-500 rounded-full p-5 shadow transition-colors flex items-center justify-center" title="Xem chi tiết">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">

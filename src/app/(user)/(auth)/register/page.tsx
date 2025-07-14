@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import VideoBackground from "@/components/VideoBackground";
+import { sendPosthogEvent } from '@/lib/utils';
 
 export default function RegisterPage() {
   const router = useRouter();

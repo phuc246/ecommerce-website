@@ -32,4 +32,15 @@
 @keyframes border-gradient-move {
   0% { background-position: 0% 50%; }
   100% { background-position: 100% 50%; }
+}
+
+.notify-popup {
+  min-width: 320px;
+  text-align: center;
 } 
+
+/* Related products slider min-height utility classes */
+.related-slider-minheight-1 { min-height: 224px; }
+.related-slider-minheight-2 { min-height: 464px; }
+.related-slider-minheight-3 { min-height: 704px; }
+.related-slider-minheight-4 { min-height: 944px; } 

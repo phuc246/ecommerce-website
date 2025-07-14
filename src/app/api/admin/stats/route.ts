@@ -15,14 +15,12 @@ export async function GET() {
     const [totalUsers, totalProducts, totalOrders, totalRevenue] = await Promise.all([
       prisma.user.count(),
       prisma.product.count(),
-      prisma.order.count(),
+      prisma.order.count({
+        where: { status: { not: 'CANCELLED' } },
+      }),
       prisma.order.aggregate({
-        where: {
-          status: OrderStatus.DELIVERED,
-        },
-        _sum: {
-          total: true,
-        },
+        where: { status: { not: 'CANCELLED' } },
+        _sum: { total: true },
       }),
     ]);
 

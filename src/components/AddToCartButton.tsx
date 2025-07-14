@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from 'sonner';
 import { ShoppingCart, Loader2, Check } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
+import { sendPosthogEvent } from '@/lib/utils';
 
 interface AddToCartButtonProps {
   productId: string;
@@ -23,7 +24,7 @@ export default function AddToCartButton({ productId, colorId, sizeId, quantity =
   const [success, setSuccess] = useState(false);
   const { fetchCart } = useCart();
 
-  const addToCart = async () => {
+  const handleAddToCart = async () => {
     if (!session) {
       toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng!');
       setTimeout(() => router.push('/login'), 1500);
@@ -63,6 +64,7 @@ export default function AddToCartButton({ productId, colorId, sizeId, quantity =
       toast.success(data.message || "Đã thêm vào giỏ hàng!");
       setSuccess(true);
       setTimeout(() => setSuccess(false), 500);
+      sendPosthogEvent('add_to_cart', { productId, quantity });
     } catch (error: any) {
       toast.error(error.message || "Thêm vào giỏ hàng thất bại!");
     } finally {
@@ -72,7 +74,7 @@ export default function AddToCartButton({ productId, colorId, sizeId, quantity =
 
   return (
     <button
-      onClick={addToCart}
+      onClick={handleAddToCart}
       disabled={loading}
       className={
         iconOnly

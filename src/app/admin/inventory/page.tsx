@@ -17,7 +17,6 @@ interface SizeItem {
 
 interface ColorGroup {
   color: string;
-  colorHex?: string;
   image?: string;
   price?: number;
   salePrice?: number;
@@ -109,17 +108,17 @@ export default function InventoryPage() {
         .map((color: ColorGroup) => ({
           ...color,
           sizes: color.sizes.filter((s: SizeItem) => {
-            const term = searchTerm.toLowerCase();
-            const matchProduct = product.productName.toLowerCase().includes(term);
-            const matchColor = color.color.toLowerCase().includes(term);
+        const term = searchTerm.toLowerCase();
+        const matchProduct = product.productName.toLowerCase().includes(term);
+        const matchColor = color.color.toLowerCase().includes(term);
             const matchSize = s.size.toLowerCase().includes(term);
             const matchSKU = (color.sku || '').toLowerCase().includes(term) || (s.sku || '').toLowerCase().includes(term);
             let matchStock = true;
             if (stockBadge === 'low') matchStock = s.stock > 0 && s.stock < 5;
             if (stockBadge === 'out') matchStock = s.stock === 0;
             return (matchProduct || matchColor || matchSize || matchSKU) && matchStock;
-          })
-        }))
+      })
+    }))
         .filter((color: ColorGroup) => color.sizes.length > 0);
       return {
         ...product,

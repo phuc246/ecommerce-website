@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Image from "next/image";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { useMouseMove } from "@/hooks/useMouseMove";
+import styles from './CartItem.module.css';
 
 interface CartItemProps {
   item: {
@@ -31,8 +32,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
   return (
     <div
       ref={itemRef}
-      className="relative flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300"
-      style={mouseStyle}
+      className={`relative flex items-center gap-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 ${mouseStyle ? styles.mouseMove : ''}`}
     >
       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md">
         <Image

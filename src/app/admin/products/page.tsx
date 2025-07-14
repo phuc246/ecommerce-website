@@ -13,6 +13,7 @@ import ProductTable from "@/components/admin/ProductTable";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { Product as ProductTableProduct } from '@/components/admin/ProductTable';
+import useSWR from 'swr';
 
 interface Log {
   id: string;
@@ -26,8 +27,8 @@ interface Log {
 export default function AdminProductsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [products, setProducts] = useState<ProductTableProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [searchTerm, setSearchTerm] = useState("");
   const [logs, setLogs] = useState<Log[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
@@ -37,9 +38,19 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState([]);
   const [attributes, setAttributes] = useState([]);
 
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+  const { data, isLoading, mutate } = useSWR(
+    `/api/admin/products?page=${page}&limit=${limit}&search=${encodeURIComponent(searchTerm)}`,
+    fetcher
+  );
+
+  const products = data?.products || [];
+  const total = data?.total || 0;
+  const totalPages = Math.ceil(total / limit);
+
   useEffect(() => {
     if (status === "authenticated" && session.user.role === "ADMIN") {
-      fetchProducts();
       fetchLogs();
       fetchCategories();
       fetchAttributes();
@@ -48,22 +59,6 @@ export default function AdminProductsPage() {
     }
     // We don't need to check for status === 'loading' because the layout will handle it.
   }, [session, status, router]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/admin/products");
-      if (!response.ok) throw new Error("Failed to fetch products");
-      let data = await response.json();
-      // Sắp xếp sản phẩm mới nhất lên đầu
-      data = data.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setProducts(data);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "An error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchLogs = async () => {
     setLoadingLogs(true);
@@ -111,7 +106,7 @@ export default function AdminProductsPage() {
         throw new Error(errorData.error || "Failed to delete product");
       }
       toast.success("Product deleted successfully");
-      fetchProducts(); // Refresh list after deletion
+      mutate(); // Refresh list after deletion
       fetchLogs(); // Refresh logs as well
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "An error occurred while deleting");
@@ -124,7 +119,7 @@ export default function AdminProductsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedProduct),
     });
-    fetchProducts();
+    mutate();
     fetchLogs();
   };
 
@@ -201,21 +196,26 @@ export default function AdminProductsPage() {
         <Input
           placeholder="Tìm kiếm theo tên sản phẩm..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
           className="max-w-sm"
         />
       </div>
-
       <ProductTable
         products={products}
-        loading={loading}
+        loading={isLoading}
         searchTerm={searchTerm}
-        onDelete={handleDelete}
-        onEdit={handleEdit}
+        onDelete={async (id) => { await handleDelete(id); mutate(); }}
+        onEdit={async (p) => { await handleEdit(p); mutate(); }}
         categories={categories}
         attributes={attributes}
         trends={[]}
       />
+      {/* Pagination */}
+      <div className="flex justify-center items-center gap-2 mt-6">
+        <Button disabled={page === 1} onClick={() => setPage(page - 1)}>Trước</Button>
+        <span>Trang {page} / {totalPages || 1}</span>
+        <Button disabled={page === totalPages || totalPages === 0} onClick={() => setPage(page + 1)}>Sau</Button>
+      </div>
 
       <div className="mt-12">
         <h2 className="text-xl font-bold mb-4">Lịch sử thao tác sản phẩm</h2>

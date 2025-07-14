@@ -4,37 +4,45 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const products = await prisma.product.findMany({
-      include: {
-        category: true,
-        variants: true,
-        productAttributes: {
-          include: { attribute: true }
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const search = searchParams.get('search') || '';
+
+    const where = search
+      ? {
+          name: {
+            contains: search,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        }
+      : {};
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          category: true,
+          variants: true,
         },
-      },
-    });
+      }),
+      prisma.product.count({ where }),
+    ]);
 
-    // Chuẩn hóa dữ liệu trả về
-    const result = products.map(product => ({
-      ...product,
-      attributes: product.productAttributes.map(pa => pa.attribute),
-    }));
-
-    return NextResponse.json(result);
+    return NextResponse.json({ products, total });
   } catch (error) {
-    console.error("Error fetching products:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error(error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -112,13 +120,12 @@ export async function POST(req: Request) {
         name,
         description: description || "Đang cập nhật",
         image,
-        images: images || [],
+        images: images && images.length > 0 ? { create: images } : undefined,
         category: { connect: { id: categoryId } },
         variants: {
           create: variants.flatMap((variant: any) =>
             variant.sizes.map((sz: any) => ({
               color: variant.color,
-              colorHex: variant.colorHex,
               size: sz.size,
               price: parseFloat(variant.price),
               salePrice: variant.salePrice ? parseFloat(variant.salePrice) : null,
@@ -197,6 +204,8 @@ export async function PUT(req: Request) {
     await prisma.productVariant.deleteMany({ where: { productId: id } });
     await prisma.productAttribute.deleteMany({ where: { productId: id } });
     await prisma.productTrend.deleteMany({ where: { productId: id } });
+    // Xóa hết ảnh cũ trước khi thêm mới
+    await prisma.productImage.deleteMany({ where: { productId: id } });
     // Cập nhật sản phẩm
     const updated = await prisma.product.update({
       where: { id },
@@ -204,13 +213,12 @@ export async function PUT(req: Request) {
         name,
         description: description || "Đang cập nhật",
         image,
-        images: images || [],
+        images: images && images.length > 0 ? { create: images } : undefined,
         category: { connect: { id: categoryId } },
         variants: {
           create: variants.flatMap((variant: any) =>
             variant.sizes.map((sz: any) => ({
               color: variant.color,
-              colorHex: variant.colorHex,
               size: sz.size,
               price: parseFloat(variant.price),
               salePrice: variant.salePrice ? parseFloat(variant.salePrice) : null,

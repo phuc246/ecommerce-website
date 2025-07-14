@@ -19,7 +19,7 @@ interface Promotion {
 export default function PromotionBanner() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<{[code: string]: boolean}>({});
   const [imageError, setImageError] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
   
@@ -80,8 +80,8 @@ export default function PromotionBanner() {
 
   const copyToClipboard = (code: string) => {
     navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopied(prev => ({ ...prev, [code]: true }));
+    setTimeout(() => setCopied(prev => ({ ...prev, [code]: false })), 2000);
   };
 
   if (loading) {
@@ -176,7 +176,7 @@ export default function PromotionBanner() {
                 >
                   <Sparkles className="mr-1 text-yellow-400 animate-pulse" size={16} />
                   <span className="mr-1">{promo.code}</span>
-                  {copied ? (
+                  {copied[promo.code] ? (
                     <span className="text-green-600 text-xs">Đã sao chép!</span>
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -184,6 +184,14 @@ export default function PromotionBanner() {
                     </svg>
                   )}
                 </motion.div>
+                {/* Hiển thị loại giảm giá */}
+                <div className="text-xs font-semibold text-pink-700 mt-1 bg-white/80 rounded px-2 py-0.5 ml-2">
+                  {promo.discount && promo.discount.includes('%')
+                    ? `Giảm ${promo.discount}`
+                    : promo.discount && !isNaN(Number(promo.discount.replace(/[^\d]/g, '')))
+                      ? `Giảm ${Number(promo.discount.replace(/[^\d]/g, '')).toLocaleString()}đ`
+                      : ''}
+                </div>
                 <span className="text-xs font-medium block w-full md:w-auto">
                   {promo.expiryDate ? `Còn lại: ${Math.floor((new Date(promo.expiryDate).getTime() - Date.now())/(1000*60*60*24))} ngày` : ''}
                 </span>

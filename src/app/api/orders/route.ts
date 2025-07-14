@@ -99,15 +99,18 @@ export async function POST(request: Request) {
         }
       }
       // Tính tổng tiền
-      let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      let subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      let total = subtotal;
+      let shippingFee = 30000;
       if (promotion) {
         if (promotion.discountType === 'PERCENTAGE') {
-          discountAmount = Math.round(total * promotion.discountValue / 100);
+          discountAmount = Math.round(subtotal * promotion.discountValue / 100);
         } else if (promotion.discountType === 'FIXED_AMOUNT') {
           discountAmount = Math.round(promotion.discountValue);
         }
-        total = Math.max(0, total - discountAmount);
+        total = Math.max(0, subtotal - discountAmount);
       }
+      total = total + shippingFee;
       // Tạo đơn hàng
       const createdOrder = await tx.order.create({
         data: {
@@ -120,6 +123,8 @@ export async function POST(request: Request) {
           pendingAt: new Date(),
           promotionCode: promotion ? promotion.code : null,
           discountAmount: promotion ? discountAmount : null,
+          shippingFee,
+          subtotal,
           items: {
             create: items.map((item: any) => ({
               productVariantId: item.productVariantId,
@@ -173,6 +178,8 @@ export async function POST(request: Request) {
       createdAt: order.createdAt,
       promotionCode: order.promotionCode,
       discountAmount: order.discountAmount,
+      shippingFee: order.shippingFee,
+      subtotal: order.subtotal,
     });
   } catch (error) {
     console.error('[ORDER_CREATE]', error);
@@ -215,6 +222,7 @@ export async function GET() {
         color: item.productVariant.color,
         size: item.productVariant.size,
         image: item.productVariant.product.image,
+        salePrice: item.productVariant.salePrice ?? null,
         product: {
           id: item.productVariant.product.id,
           name: item.productVariant.product.name,

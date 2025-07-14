@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import './slider.css';
 
 interface SliderProps {
   min: number;
@@ -72,40 +73,44 @@ export const Slider: React.FC<SliderProps> = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  // Tính toán giá trị phần trăm cho các biến CSS
+  const sliderVars = {
+    '--slider-bar-left': `${getPercent(localValues[0])}%`,
+    '--slider-bar-width': `${getPercent(localValues[1]) - getPercent(localValues[0])}%`,
+    '--slider-thumb-left-0': `${getPercent(localValues[0])}%`,
+    '--slider-thumb-left-1': `${getPercent(localValues[1])}%`,
+  };
+
+  useEffect(() => {
+    if (rangeRef.current) {
+      rangeRef.current.style.setProperty('--slider-bar-left', `${getPercent(localValues[0])}%`);
+      rangeRef.current.style.setProperty('--slider-bar-width', `${getPercent(localValues[1]) - getPercent(localValues[0])}%`);
+      rangeRef.current.style.setProperty('--slider-thumb-left-0', `${getPercent(localValues[0])}%`);
+      rangeRef.current.style.setProperty('--slider-thumb-left-1', `${getPercent(localValues[1])}%`);
+    }
+  }, [localValues]);
+
   return (
     <div className={`relative py-4 ${className || ''}`}>
       <div
+        className={`absolute w-full h-2 bg-gray-200 rounded-full slider-root slider-vars`}
         ref={rangeRef}
-        className="w-full h-2 bg-gray-200 rounded-full"
+        // style={sliderVars as React.CSSProperties}
       >
         <div
-          className="absolute h-2 bg-indigo-600 rounded-full"
-          style={{
-            left: `${getPercent(localValues[0])}%`,
-            width: `${getPercent(localValues[1]) - getPercent(localValues[0])}%`,
-          }}
+          className="absolute bg-indigo-600 rounded-full slider-bar"
         />
       </div>
       
-      {localValues.map((val, index) => {
-        const minValue = typeof min === 'number' ? min : Number(min);
-        const maxValue = typeof max === 'number' ? max : Number(max);
-        const nowValue = typeof val === 'number' ? val : Number(val);
-        return (
+      {localValues.map((val, index) => (
           <div
             key={index}
-            className="absolute w-5 h-5 bg-white border-2 border-indigo-600 rounded-full top-1/2 -mt-2.5 cursor-pointer"
-            style={{ left: `calc(${getPercent(val)}% - 10px)`, zIndex: 10 }}
+          className="absolute w-5 h-5 bg-white border-2 border-indigo-600 rounded-full top-1/2 -mt-2.5 cursor-pointer slider-thumb"
+          data-index={index}
             onMouseDown={(e) => handleMouseDown(e, index as 0 | 1)}
-            role="slider"
-            aria-valuemin={minValue}
-            aria-valuemax={maxValue}
-            aria-valuenow={nowValue}
-            aria-label={index === 0 ? "Min price" : "Max price"}
             tabIndex={0}
           />
-        );
-      })}
+      ))}
     </div>
   );
 }; 

@@ -121,13 +121,13 @@ export default function TrendExplorePage() {
                 <h2 className={`text-lg font-bold mb-1 text-transparent bg-clip-text bg-gradient-to-r ${gradient} break-words line-clamp-2 text-center w-full`}>{trend.name}</h2>
               </div>
               {/* Product list */}
-              <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4 px-2 justify-items-center">
+              <div className="w-full flex flex-row gap-4 overflow-x-auto scroll-smooth px-2 pb-2">
                 {products.map(product => (
                   <div
                     key={product.id}
                     className="relative min-w-[200px] max-w-[200px] rounded-2xl shadow group snap-start flex flex-col items-stretch transition-transform hover:-translate-y-2 duration-300 bg-transparent p-0 m-0"
                   >
-                    <div className="relative w-screen min-w-0 aspect-[1/1.2] rounded-2xl overflow-hidden flex-shrink-0 p-0 m-0 md:min-w-[200px] md:max-w-[200px] md:aspect-[3/4]">
+                    <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden flex-shrink-0 p-0 m-0">
                       <Image src={product.image} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw" />
                       {/* Overlay action buttons on hover */}
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-opacity duration-300 z-10">

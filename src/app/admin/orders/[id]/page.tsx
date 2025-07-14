@@ -53,6 +53,14 @@ export default function OrderDetailPage() {
     }
   }
 
+  function getItemDisplayPrice(item: any) {
+    const variant = item.productVariant;
+    if (variant && typeof variant.salePrice === 'number' && variant.salePrice > 0 && variant.salePrice < variant.price) {
+      return variant.salePrice;
+    }
+    return variant?.price ?? item.price;
+  }
+
   useEffect(() => {
     fetch(`/api/admin/orders/${orderId}`)
       .then(res => res.json())
@@ -76,7 +84,10 @@ export default function OrderDetailPage() {
 
   const handleStatusChange = async (status: string) => {
     if (status === 'CANCELLED') {
+      // Chỉ mở modal nếu trạng thái hiện tại KHÁC CANCELLED
+      if (order.status !== 'CANCELLED') {
       setShowCancelModal(true);
+      }
       return;
     }
     setUpdating(true);
@@ -115,6 +126,9 @@ export default function OrderDetailPage() {
   if (error) return <div className="text-center text-red-500 py-12">{error}</div>;
   if (!order) return <div className="text-center py-12">Không tìm thấy đơn hàng</div>;
 
+  const computedSubtotal = (order.items || []).reduce((sum: number, item: any) => sum + (item.quantity * getItemDisplayPrice(item)), 0);
+  const computedTotal = computedSubtotal + (order.shippingFee || 0) - (order.discountAmount || 0);
+
   return (
     <div className="bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 min-h-screen py-8">
       <div className="max-w-3xl mx-auto bg-white/90 rounded-3xl shadow-2xl p-8">
@@ -130,7 +144,6 @@ export default function OrderDetailPage() {
             <div className="font-semibold text-gray-700 flex items-center gap-2"><span>📞</span> {order.phone || order.shippingPhone || order.user?.phone || 'Không có số điện thoại'}</div>
             <div className="font-semibold text-gray-700 flex items-center gap-2"><span>📧</span> {order.user?.email}</div>
             <div className="font-semibold text-gray-700 flex items-center gap-2"><span>📍</span> {order.shippingAddress}</div>
-            <div className="font-semibold text-gray-700 flex items-center gap-2"><span>💳</span> {order.paymentMethod}</div>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -155,13 +168,24 @@ export default function OrderDetailPage() {
                 ))}
               </select>
             </div>
-            <div className="font-semibold text-gray-700">Tổng tiền: <span className="text-blue-600 font-bold">{order.total.toLocaleString()}₫</span></div>
+            <div className="font-semibold text-gray-700">Tổng tiền: <span className="text-blue-600 font-bold">{computedTotal.toLocaleString()}₫</span></div>
             <div className="font-semibold text-gray-700">Ngày đặt: {new Date(order.createdAt).toLocaleString('vi-VN')}</div>
             {order.pendingAt && <div className="text-sm text-gray-500">Chờ xác nhận: {new Date(order.pendingAt).toLocaleString('vi-VN')}</div>}
             {order.processingAt && <div className="text-sm text-gray-500">Đã xác nhận: {new Date(order.processingAt).toLocaleString('vi-VN')}</div>}
+            {order.cancelRequestedAt && (
+              <div className="text-sm text-pink-500">User yêu cầu huỷ: {new Date(order.cancelRequestedAt).toLocaleString('vi-VN')}</div>
+            )}
+            {order.cancelRejectedAt && (
+              <div className="text-sm text-blue-500">{order.cancelRejectReason || 'Shop từ chối huỷ'}: {new Date(order.cancelRejectedAt).toLocaleString('vi-VN')}</div>
+            )}
             {order.shippedAt && <div className="text-sm text-gray-500">Đang giao: {new Date(order.shippedAt).toLocaleString('vi-VN')}</div>}
             {order.deliveredAt && <div className="text-sm text-gray-500">Đã giao: {new Date(order.deliveredAt).toLocaleString('vi-VN')}</div>}
             {order.cancelledAt && <div className="text-sm text-gray-500">Đã hủy: {new Date(order.cancelledAt).toLocaleString('vi-VN')}</div>}
+            {order.status === 'CANCELLED' && order.cancelReason && (
+              <div className="bg-red-50 border-l-4 border-red-400 p-3 my-2 rounded text-sm text-red-700 font-semibold">
+                Lý do huỷ đơn hàng: {order.cancelReason}
+              </div>
+            )}
           </div>
         </div>
         <div className="bg-white rounded-xl shadow p-6">
@@ -169,19 +193,55 @@ export default function OrderDetailPage() {
           <div className="space-y-4">
             {order.items.map((item: any) => (
               <div key={item.id} className="flex items-center gap-4 border-b pb-2 last:border-b-0 hover:bg-blue-50 rounded-lg transition">
-                <img src={item.productVariant?.product?.image || '/no-image.png'} alt={item.productVariant?.product?.name} className="w-20 h-20 object-cover rounded-xl border shadow" loading="lazy" width="80" height="80" />
+                <img src={item.productVariant?.image || item.productVariant?.product?.image || '/no-image.png'} alt={item.productVariant?.product?.name} className="w-20 h-20 object-cover rounded-xl border shadow" loading="lazy" width="80" height="80" />
                 <div className="flex-1">
                   <div className="font-semibold text-lg">{item.productVariant?.product?.name}</div>
                   <div className="text-sm text-gray-500">Màu: {item.productVariant?.color} | Size: {item.productVariant?.size}</div>
                   <div className="text-sm text-gray-500">Số lượng: {item.quantity}</div>
                 </div>
-                <div className="font-semibold text-blue-600 text-lg">{item.price.toLocaleString()}₫</div>
+                <div className="font-semibold text-blue-600 text-lg">
+                  {(() => {
+                    const variant = item.productVariant;
+                    if (variant && typeof variant.salePrice === 'number' && variant.salePrice > 0 && variant.salePrice < variant.price) {
+                      return variant.salePrice.toLocaleString('vi-VN');
+                    }
+                    return (variant?.price ?? item.price).toLocaleString('vi-VN');
+                  })()}₫
+                </div>
               </div>
             ))}
           </div>
+          {/* Block thông tin thanh toán giống user */}
+          <div className="bg-gray-50 rounded-lg p-4 mt-6 mb-2">
+            <div className="flex justify-between py-1">
+              <span>Tổng tiền hàng:</span>
+              <span>{computedSubtotal.toLocaleString("vi-VN")}đ</span>
+            </div>
+            {order.shippingFee !== undefined && order.shippingFee !== null && (
+              <div className="flex justify-between py-1">
+                <span>Phí vận chuyển:</span>
+                <span>{Number(order.shippingFee).toLocaleString("vi-VN")}đ</span>
+              </div>
+            )}
+            {order.discountAmount !== undefined && order.discountAmount !== null && (
+              <div className="flex justify-between py-1">
+                <span>Giảm giá:</span>
+                <span className="text-green-600">-{Number(order.discountAmount).toLocaleString("vi-VN") }đ</span>
+              </div>
+            )}
+            <div className="flex justify-between py-1 font-bold text-lg">
+              <span>Tổng thanh toán:</span>
+              <span className="text-pink-600">{computedTotal.toLocaleString("vi-VN")}đ</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span>Phương thức thanh toán:</span>
+              <span>{order.paymentMethod || 'Không có thông tin thanh toán'}</span>
+            </div>
+          </div>
         </div>
       </div>
-      <Dialog open={showCancelModal} onOpenChange={setShowCancelModal}>
+      <Dialog open={showCancelModal && order.status !== 'CANCELLED'} onOpenChange={setShowCancelModal}>
+        {showCancelModal && order.status !== 'CANCELLED' && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
             <h2 className="font-bold text-lg mb-2">Nhập lý do huỷ đơn hàng</h2>
@@ -201,6 +261,7 @@ export default function OrderDetailPage() {
             </div>
           </div>
         </div>
+        )}
       </Dialog>
     </div>
   );

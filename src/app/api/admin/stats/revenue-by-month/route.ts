@@ -6,7 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export async function GET() {
   // Lấy doanh thu theo tháng từ đơn đã giao
   const orders = await prisma.order.findMany({
-    where: { status: 'DELIVERED' },
+    where: { status: { not: 'CANCELLED' } },
     select: { total: true, createdAt: true },
   });
   // Group by tháng

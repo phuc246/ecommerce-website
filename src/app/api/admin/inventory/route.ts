@@ -20,11 +20,10 @@ export async function GET(req: NextRequest) {
     // Gom các variant theo màu
     const colorMap: Record<string, any> = {};
     product.variants.forEach(variant => {
-      const colorKey = variant.color + (variant.colorHex || '');
+      const colorKey = variant.color;
       if (!colorMap[colorKey]) {
         colorMap[colorKey] = {
           color: variant.color,
-          colorHex: variant.colorHex,
           image: variant.image || product.image,
           price: variant.price,
           salePrice: variant.salePrice,

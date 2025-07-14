@@ -357,14 +357,18 @@ export default function TrendsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Tên xu hướng
                   </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    placeholder="Summer Fashion 2023"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md pr-16"
+                      placeholder="Summer Fashion 2023"
+                      required
+                      maxLength={50}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none bg-white px-1">{name.length}/50</span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

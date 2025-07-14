@@ -13,7 +13,6 @@ interface Attribute { id: string; name: string; }
 interface Variant {
   id: string;
   color: string;
-  colorHex: string;
   sizes: { size: string; stock: number }[];
   price: string;
   salePrice: string;
@@ -69,15 +68,15 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
   // Mapping lại variants nếu ở chế độ edit
   function mapVariantsForEdit(variantsRaw: any[]): Variant[] {
     if (!Array.isArray(variantsRaw)) return [];
-    // Gom nhóm theo color, colorHex, sku, image
+    // Bỏ qua các variant thiếu trường bắt buộc
+    const validVariants = variantsRaw.filter(v => v && v.color && v.size && v.price !== undefined);
     const map = new Map<string, Variant>();
-    variantsRaw.forEach((v) => {
-      const key = [v.color, v.colorHex, v.sku, v.image].join("||");
+    validVariants.forEach((v) => {
+      const key = [v.color, v.sku, v.image].join("||");
       if (!map.has(key)) {
         map.set(key, {
           id: `variant_${Date.now()}_${Math.random()}`,
           color: v.color,
-          colorHex: v.colorHex || "#000000",
           sizes: [],
           price: v.price?.toString() ?? "",
           salePrice: v.salePrice?.toString() ?? "",
@@ -88,7 +87,6 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
       }
       const variant = map.get(key)!;
       variant.sizes.push({ size: v.size, stock: v.stock });
-      // Nếu giá hoặc salePrice khác nhau giữa các size, lấy giá đầu tiên (hoặc có thể custom thêm logic nếu muốn)
     });
     return Array.from(map.values());
   }
@@ -178,7 +176,6 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
       {
         id: `variant_${Date.now()}`,
         color: "",
-        colorHex: "#000000",
         sizes: size ? [{ size, stock: 0 }] : [],
         price: "",
         salePrice: "",
@@ -258,6 +255,29 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate độ dài tên sản phẩm, mô tả, tên biến thể, SKU và giá khuyến mãi
+    if (name.length > 100) {
+      toast.error("Tên sản phẩm không được vượt quá 100 ký tự!");
+      return;
+    }
+    if (description.length > 1000) {
+      toast.error("Mô tả sản phẩm không được vượt quá 1000 ký tự!");
+      return;
+    }
+    for (const v of variants) {
+      if (v.color.length > 30) {
+        toast.error("Tên biến thể (màu) không được vượt quá 30 ký tự!");
+        return;
+      }
+      if (v.sku && v.sku.length > 30) {
+        toast.error("SKU không được vượt quá 30 ký tự!");
+        return;
+      }
+      if (v.salePrice && parseFloat(v.salePrice) >= parseFloat(v.price)) {
+        toast.error(`Giá khuyến mãi của biến thể ${v.color} phải nhỏ hơn giá gốc!`);
+        return;
+      }
+    }
     // Validate từng điều kiện size
     const hasSizeName = variants.every(v => v.sizes.every(s => s.size));
     const hasStockValue = variants.every(v => v.sizes.every(s => String(s.stock) !== ""));
@@ -310,7 +330,6 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
         ],
         variants: cleanVariants.map(v => ({
           color: v.color,
-          colorHex: v.colorHex,
           sizes: v.sizes.map((s: { size: string; stock: number }) => ({ size: s.size, stock: s.stock })),
           price: parseFloat(v.price),
           salePrice: v.salePrice ? parseFloat(v.salePrice) : null,
@@ -380,10 +399,16 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
             <div className="bg-white p-6 rounded-lg shadow-sm border">
               <h2 className="text-lg font-semibold mb-4">Thông tin chung</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <input type="text" placeholder="Tên sản phẩm*" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded" required />
+                 <div className="relative">
+                   <input type="text" placeholder="Tên sản phẩm*" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border rounded pr-14" required maxLength={100} />
+                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none bg-white px-1">{name.length}/100</span>
+                 </div>
                  {renderCategorySelects()}
               </div>
-              <textarea placeholder="Mô tả sản phẩm" value={description} onChange={e => setDescription(e.target.value)} rows={6} className="w-full p-2 border rounded mt-4"/>
+              <div className="mt-4 relative">
+                <textarea placeholder="Mô tả sản phẩm" value={description} onChange={e => setDescription(e.target.value)} rows={6} className="w-full p-2 border rounded pr-14" maxLength={1000}/>
+                <span className="absolute right-3 bottom-2 text-xs text-gray-400 pointer-events-none bg-white px-1">{description.length}/1000</span>
+              </div>
               <div className="mt-4">
                 <label className="font-medium text-sm block mb-1">Thuộc tính</label>
                 <div className="flex flex-wrap gap-2">
@@ -442,37 +467,48 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                 <div className="space-y-3">
                   {variants.map((variant, index) => (
                     <div key={variant.id} className={`grid grid-cols-12 gap-3 p-3 border rounded-md relative ${index % 2 === 0 ? 'bg-slate-50' : 'bg-white'}`}>
-                      <button type="button" onClick={() => removeVariant(variant.id)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600" aria-label={`Remove variant ${variant.id}`}>
-                        <X size={14} />
-                      </button>
-                      <div className="col-span-3 sm:col-span-2 flex flex-col items-center justify-center">
-                         <button type="button" onClick={() => handleFileTrigger({ type: 'variant', id: variant.id })} className="w-20 h-20 border-2 border-dashed rounded-md flex items-center justify-center text-gray-400 cursor-pointer hover:border-pink-500 bg-white" aria-label={`Add or change image for variant ${variant.id}`}>
-                           {variant.image ? <Image src={variant.image} alt="variant" width={80} height={80} className="object-cover rounded-md" loading={index === 0 ? "eager" : "lazy"} priority={index === 0} /> : <ImageIcon size={24} />}
+                      <button type="button" onClick={() => removeVariant(variant.id)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600" aria-label={`Remove variant ${variant.id}`}>×</button>
+                      <div className="col-span-12 grid grid-cols-12 gap-4 mb-2 items-start">
+                        {/* Ảnh biến thể */}
+                        <div className="col-span-2 flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => handleFileTrigger({ type: 'variant', id: variant.id })}
+                            className="aspect-square w-20 max-w-[80px] border-2 border-dashed rounded-md flex items-center justify-center text-gray-400 cursor-pointer hover:border-pink-500 bg-white"
+                            aria-label={`Add or change image for variant ${variant.id}`}
+                          >
+                            {variant.image
+                              ? <Image src={variant.image} alt="variant" width={80} height={80} className="object-cover rounded-md" />
+                              : <ImageIcon size={24} />}
                          </button>
                       </div>
-                      <div className="col-span-9 sm:col-span-10 flex flex-wrap gap-2 items-center">
-                         <div className="col-span-12 grid grid-cols-3 gap-2 mb-2">
-                           <input type="text" placeholder="Tên biến thể" value={variant.color} onChange={e => handleVariantChange(variant.id, 'color', e.target.value)} className="p-2 border rounded w-full" required aria-label="Tên biến thể" />
-                           <input type="color" value={variant.colorHex} onChange={e => handleVariantChange(variant.id, 'colorHex', e.target.value)} className="p-1 border rounded w-full h-10" aria-label="Mã màu" />
-                           <input type="text" placeholder="SKU" value={variant.sku} onChange={e => handleVariantChange(variant.id, 'sku', e.target.value)} className="p-2 border rounded w-full" aria-label="SKU" />
+                        {/* Tên biến thể + SKU */}
+                        <div className="col-span-5 flex flex-col gap-2">
+                          <div className="relative">
+                            <input type="text" placeholder="Tên biến thể" value={variant.color} onChange={e => handleVariantChange(variant.id, 'color', e.target.value)} className="p-2 border rounded w-full pr-14" required aria-label="Tên biến thể" maxLength={30} />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none bg-white px-1">{variant.color.length}/30</span>
+                          </div>
+                          <div className="relative">
+                            <input type="text" placeholder="SKU" value={variant.sku} onChange={e => handleVariantChange(variant.id, 'sku', e.target.value)} className="p-2 border rounded w-full pr-14" aria-label="SKU" maxLength={30} />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none bg-white px-1">{variant.sku.length}/30</span>
+                          </div>
                          </div>
-                         <div className="col-span-2 flex flex-wrap gap-1 items-center mb-2">
+                        {/* Giá gốc + Giá KM */}
+                        <div className="col-span-5 flex flex-col gap-2">
+                          <input type="text" placeholder="Giá gốc*" value={formatCurrencyInput(variant.price)} onChange={e => handleVariantChange(variant.id, 'price', e.target.value.replace(/\D/g, ""))} className="p-2 border rounded w-full" required aria-label="Variant price" />
+                          <input type="text" placeholder="Giá KM" value={formatCurrencyInput(variant.salePrice)} onChange={e => handleVariantChange(variant.id, 'salePrice', e.target.value.replace(/\D/g, ""))} className="p-2 border rounded w-full" aria-label="Variant sale price" />
+                        </div>
+                      </div>
+                      {/* Size nằm hàng thứ 2 */}
+                      <div className="col-span-12 flex flex-wrap gap-2 items-center mb-2">
                            {(variant.sizes || []).map(({ size, stock }) => (
-                             <span key={size} className="bg-pink-500 text-white px-2 py-0.5 rounded text-xs flex items-center gap-2">
-                               {size}
-                               <input
-                                 type="number"
-                                 min={0}
-                                 value={stock}
-                                 onChange={e => handleVariantSizeStockChange(variant.id, size, Number(e.target.value))}
-                                 className="w-12 min-w-[48px] p-0.5 text-xs border rounded bg-white text-pink-700"
-                                 aria-label={`Số lượng size ${size}`}
-                               />
+                          <div key={size} className="flex items-center gap-1 bg-pink-500 text-white rounded px-2 py-1">
+                            <span>{size}</span>
+                            <input type="number" min={0} value={stock} onChange={e => handleVariantSizeStockChange(variant.id, size, Number(e.target.value))} className="w-12 p-1 rounded text-black" aria-label={`Stock for size ${size}`} />
                                <button type="button" onClick={() => handleVariantChange(variant.id, 'sizes', (variant.sizes || []).filter(s => s.size !== size))} className="ml-1 text-white hover:text-red-200">×</button>
-                             </span>
+                          </div>
                            ))}
-                         </div>
-                         <div className="col-span-2 flex flex-wrap gap-1 items-center mb-2">
+                        {/* Nút thêm size nhanh */}
                            {sizeType && SIZING_PRESETS[sizeType].filter(size => !variant.sizes.some(s => s.size === size)).map(size => (
                              <button
                                key={size}
@@ -503,30 +539,6 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                              }}
                              aria-label="Thêm size tuỳ chọn"
                            />
-                         </div>
-                         <div className="col-span-12 grid grid-cols-2 gap-2 mt-2">
-                           <input
-                             type="text"
-                             placeholder="Giá gốc*"
-                             value={formatCurrencyInput(variant.price)}
-                             onChange={e => {
-                               handleVariantChange(variant.id, 'price', e.target.value.replace(/\D/g, ""));
-                             }}
-                             className="p-2 border rounded"
-                             required
-                             aria-label="Variant price"
-                           />
-                           <input
-                             type="text"
-                             placeholder="Giá KM"
-                             value={formatCurrencyInput(variant.salePrice)}
-                             onChange={e => {
-                               handleVariantChange(variant.id, 'salePrice', e.target.value.replace(/\D/g, ""));
-                             }}
-                             className="p-2 border rounded"
-                             aria-label="Variant sale price"
-                           />
-                         </div>
                       </div>
                     </div>
                   ))}

@@ -48,6 +48,8 @@ export default function ChangePasswordTab() {
           value={oldPassword}
           onChange={e => setOldPassword(e.target.value)}
           required
+          title="Mật khẩu cũ"
+          placeholder="Nhập mật khẩu cũ"
         />
       </div>
       <div>
@@ -58,6 +60,8 @@ export default function ChangePasswordTab() {
           value={newPassword}
           onChange={e => setNewPassword(e.target.value)}
           required
+          title="Mật khẩu mới"
+          placeholder="Nhập mật khẩu mới"
         />
       </div>
       <div>
@@ -68,6 +72,8 @@ export default function ChangePasswordTab() {
           value={confirmPassword}
           onChange={e => setConfirmPassword(e.target.value)}
           required
+          title="Xác nhận mật khẩu mới"
+          placeholder="Nhập lại mật khẩu mới"
         />
       </div>
       <button

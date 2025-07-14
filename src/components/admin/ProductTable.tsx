@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useState } from "react";
 import React from "react";
-import EditProductModal from "./EditProductModal";
+import { useRouter } from "next/navigation";
 
 interface Variant {
   id: string;
@@ -46,8 +46,7 @@ interface ProductTableProps {
 export default function ProductTable({ products, loading, searchTerm, onDelete, onEdit, categories, trends, attributes }: ProductTableProps) {
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
   const [popupImage, setPopupImage] = useState<string | null>(null);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const router = useRouter();
   
   const filteredProducts = products.filter(p => {
     const term = searchTerm.toLowerCase();
@@ -88,30 +87,39 @@ export default function ProductTable({ products, loading, searchTerm, onDelete, 
     };
   };
 
-  const handleEditClick = (product: any) => {
-    // Build categoryPath from product.category.id and categories
-    function buildCategoryPath(categoryId: string, categories: any[]): string[] {
-      const path = [];
-      let current = categories.find((c) => c.id === categoryId);
-      while (current) {
-        path.unshift(current.id);
-        current = categories.find((c) => c.id === current.parentId);
-      }
-      return path;
+  // Sửa lại handleEditClick để fetch chi tiết sản phẩm từ API
+  const handleEditClick = async (product: any) => {
+    try {
+      const res = await fetch(`/api/products/${product.id}`);
+      if (!res.ok) throw new Error('Không thể lấy chi tiết sản phẩm');
+      const detail = await res.json();
+      const editingProduct = {
+        ...detail,
+        categoryPath: detail.categoryPath || [],
+        attributeIds: detail.attributeIds || [],
+      };
+      // setEditingProduct(editingProduct); // Đã xoá
+      // setShowEditModal(true); // Đã xoá
+    } catch (error) {
+      alert('Không thể lấy chi tiết sản phẩm!');
     }
-    const editingProduct = {
-      ...product,
-      categoryPath: product.categoryPath || buildCategoryPath(product.category?.id, categories),
-      attributeIds: product.attributes?.map((a: any) => a.id) || [],
-    };
-    setEditingProduct(editingProduct);
-    setShowEditModal(true);
   };
 
+  // Sửa lại handleEditSave để cập nhật sản phẩm từ API
   const handleEditSave = async (updatedProduct: any) => {
-    await onEdit(updatedProduct);
-    setShowEditModal(false);
-    setEditingProduct(null);
+    try {
+      const res = await fetch(`/api/products/${updatedProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedProduct),
+      });
+      if (!res.ok) throw new Error('Không thể cập nhật sản phẩm');
+      onEdit(updatedProduct);
+    } catch (error) {
+      alert('Không thể cập nhật sản phẩm!');
+    }
   };
 
   if (loading) {
@@ -172,8 +180,16 @@ export default function ProductTable({ products, loading, searchTerm, onDelete, 
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1 mb-1">
-                      {colorList.map(color => (
-                        <span key={color} className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded text-xs">{color}</span>
+                      {/* Hiển thị mỗi màu 1 hình ảnh đại diện */}
+                      {Array.from(new Map(product.variants.filter(v => v.image).map(v => [v.color, v])).values()).map((variant) => (
+                        <img
+                          key={variant.color}
+                          src={variant.image}
+                          alt={variant.color}
+                          className="w-8 h-8 rounded border object-cover cursor-pointer hover:scale-110 transition-transform"
+                          title={variant.color}
+                          onClick={() => variant.image && setPopupImage(variant.image || null)}
+                        />
                       ))}
                     </div>
                     <div className="flex flex-wrap gap-1">
@@ -206,7 +222,7 @@ export default function ProductTable({ products, loading, searchTerm, onDelete, 
                       variant="ghost"
                       size="icon"
                       className="bg-pink-50 hover:bg-pink-200 text-pink-600 border border-pink-200"
-                      onClick={() => handleEditClick(product)}
+                      onClick={() => router.push(`/admin/products/add?id=${product.id}`)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -311,16 +327,7 @@ export default function ProductTable({ products, loading, searchTerm, onDelete, 
           </div>
         </div>
       )}
-      {showEditModal && editingProduct && (
-        <EditProductModal
-          open={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          product={editingProduct}
-          onSave={handleEditSave}
-          categories={categories}
-          attributes={attributes}
-        />
-      )}
+      {/* EditProductModal is removed as per the edit hint */}
     </div>
   );
 }

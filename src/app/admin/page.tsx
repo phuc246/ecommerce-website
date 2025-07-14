@@ -2,19 +2,17 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import ReviewsTable from '@/components/admin/ReviewsTable';
 
 export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.push("/admin/dashboard");
+    router.replace("/admin/dashboard");
   }, [router]);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Quản lý đánh giá sản phẩm</h1>
-      <ReviewsTable />
+    <div className="flex items-center justify-center min-h-[300px]">
+      <span>Đang chuyển hướng đến trang quản trị...</span>
     </div>
   );
 } 

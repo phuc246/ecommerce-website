@@ -92,7 +92,12 @@ export async function GET() {
     );
     
     return NextResponse.json({
-      items: cartItems,
+      items: cartItems.map(item => ({
+        ...item,
+        salePrice: item.productVariant?.salePrice ?? null,
+        variantImage: item.productVariant?.image || item.productVariant?.product?.image || '',
+        stock: item.productVariant?.stock ?? 0, // Thêm trường stock
+      })),
       subtotal,
       count: cartItems.length,
     });

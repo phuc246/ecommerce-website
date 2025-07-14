@@ -50,6 +50,7 @@ export default function ProductList() {
   const [randomHighlightIdx, setRandomHighlightIdx] = useState<number | null>(null);
   const [selectedAttributeId, setSelectedAttributeId] = useState<string | null>(null);
   const [attributes, setAttributes] = useState<{ id: string; name: string }[]>([]);
+  const [hotProductIds, setHotProductIds] = useState<string[]>([]); // Thêm state lưu id sản phẩm hot
   
   const {
     containerRef,
@@ -102,9 +103,21 @@ export default function ProductList() {
       }
     };
 
+    const fetchHotProducts = async () => {
+      try {
+        const response = await fetch('/api/products/featured');
+        if (!response.ok) throw new Error('Failed to fetch featured products');
+        const data = await response.json();
+        setHotProductIds(Array.isArray(data) ? data.map((p: any) => p.id) : []);
+      } catch (error) {
+        console.error('Error fetching hot products:', error);
+      }
+    };
+
     fetchCategories();
     fetchProducts();
     fetchAttributes();
+    fetchHotProducts();
   }, []);
 
   useEffect(() => {
@@ -223,9 +236,7 @@ export default function ProductList() {
   return (
     <div className="relative bg-gradient-to-b from-blue-50 to-pink-50">
       {/* Background with parallax */}
-      <div
-        className="absolute inset-0 -z-0 pointer-events-none bg-gradient-to-b from-gray-100 to-gray-200"
-      />
+      <div className="absolute inset-0 -z-0 pointer-events-none bg-gradient-to-br from-yellow-300 via-pink-400 to-blue-400" />
       {/* Video background section với tiêu đề đè lên */}
       <div className="relative w-full h-[300px] z-10 overflow-hidden rounded-2xl mb-2 shadow flex items-center justify-center">
         <video
@@ -260,7 +271,7 @@ export default function ProductList() {
       <div className="relative z-10 mt-0">
         <div 
           ref={containerRef}
-          className="flex space-x-2 py-2 px-4 overflow-x-auto hide-scrollbar relative bg-white/60 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/40 min-h-[64px]"
+          className="flex space-x-2 py-2 px-4 overflow-x-auto hide-scrollbar relative bg-black/10 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/40 min-h-[64px]"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
           onScroll={handleScroll}
@@ -298,9 +309,9 @@ export default function ProductList() {
       </div>
       {/* Product attribute bar section */}
       <div className="relative z-10 mt-2 mb-3">
-        <div className="flex items-center py-3 px-4 bg-white/60 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/40 min-h-[52px]">
-          <span className="font-semibold text-base text-gray-700 flex-shrink-0 mr-3">Hôm nay bạn sẽ:</span>
-          <div className="flex space-x-2 overflow-x-auto hide-scrollbar flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex items-center py-3 px-4 bg-back/30 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 min-h-[52px]">
+          <span className="font-semibold text-base text-black flex-shrink-0 mr-4">Hôm nay bạn sẽ:</span>
+          <div className="flex space-x-2 overflow-x-auto hide-scrollbar flex-1 scrolling-touch">
             {(() => {
               // Lấy tất cả thuộc tính từ filteredProducts hoặc products nếu chưa lọc
               const attrMap = new Map();
@@ -318,9 +329,8 @@ export default function ProductList() {
               return attrs.map(attr => (
                 <button
                   key={attr.id}
-                  className={`inline-block px-3 py-1 rounded-full border text-xs font-medium shadow-sm whitespace-nowrap mr-2 transition-colors duration-200 ${selectedAttributeId === attr.id ? 'bg-pink-500 text-white border-pink-600' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'}`}
+                  className={`inline-block px-3 py-1 rounded-full border text-xs font-medium shadow-sm whitespace-nowrap mr-2 transition-colors duration-200 ${selectedAttributeId === attr.id ? 'bg-pink-500 text-white border-pink-600' : 'bg-pink-50 text-pink-600 border-pink-200 hover:bg-pink-100'} min-w-[80px]`}
                   onClick={() => setSelectedAttributeId(selectedAttributeId === attr.id ? null : attr.id)}
-                  style={{ minWidth: 80 }}
                 >
                   {attr.name}
                 </button>
@@ -354,19 +364,20 @@ export default function ProductList() {
                   {filteredProducts.map((product, idx) => (
                     <div key={product.id} className="group relative">
                       <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col border border-gray-100">
-                        <div className="relative aspect-square overflow-hidden">
+                        <div className="relative aspect-square overflow-hidden group/image">
                           <Image
                             src={product.image}
                             alt={product.name}
                             fill
                             className="object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                            data-main
                           />
                           <div className="absolute top-4 left-4">
                             <span className="inline-block bg-white/80 px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow">
                               {product.category.name}
                             </span>
                           </div>
-                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-10">
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/image:opacity-100 flex items-center justify-center transition-opacity duration-300 z-10">
                             <div className="flex flex-col space-y-4">
                               <Link href={`/products/${product.id}`} className="bg-white/80 hover:bg-pink-400 hover:text-white text-pink-500 rounded-full p-4 shadow transition-colors flex items-center justify-center" title="Xem chi tiết">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -396,7 +407,7 @@ export default function ProductList() {
                             </div>
                           </div>
                         </div>
-                        <div className="p-4 flex-grow flex flex-col items-center">
+                        <div className="p-4 flex-grow flex flex-col items-center gradi bg-purple-100 rounded-b-2xl">
                           <Link href={`/products/${product.id}`} className="flex-grow w-full">
                             <h3
                               key={randomHighlightIdx === idx ? `shine-${idx}-${randomHighlightIdx}` : `normal-${idx}`}
@@ -405,14 +416,42 @@ export default function ProductList() {
                                 ${randomHighlightIdx === idx ? 'gradient-pulse-glow' : ''}
                               `}
                             >
+                              {hotProductIds.includes(product.id) && (
+                                <img src="https://emojigraph.org/media/72/apple/heart-on-fire_2764-fe0f-200d-1f525.png" alt="Hot" className="inline-block w-5 h-5 mr-1 align-text-bottom animate-wiggle" />
+                              )}
                               {product.name}
                             </h3>
                           </Link>
-                          {/* Hiển thị màu sản phẩm dạng icon tròn nhỏ */}
-                          {product.colors && product.colors.length > 0 && (
-                            <div className="flex gap-1 mb-1 mt-1 justify-center">
-                              {product.colors.map((color, idx) => (
-                                <span key={idx} className="product-color-dot" style={{ '--product-color': color.value } as React.CSSProperties} title={color.name}></span>
+                          {/* Hiển thị dải thumbnail ảnh biến thể */}
+                          {product.variants && product.variants.length > 0 && (
+                            <div className="flex gap-1 mb-1 mt-1 justify-center"
+                              onMouseLeave={e => {
+                                const img = e.currentTarget.closest('.group')?.querySelector('img[data-main]');
+                                if (img && img instanceof HTMLImageElement) {
+                                  img.src = product.image;
+                                }
+                              }}
+                            >
+                              {product.variants.filter((v: any) => v.image).map((v: any) => (
+                                <img
+                                  key={v.id || v.image + v.color}
+                                  src={v.image}
+                                  alt={v.color}
+                                  className="w-7 h-7 rounded border object-cover cursor-pointer hover:scale-110 transition-transform"
+                                  onMouseEnter={e => {
+                                    const img = e.currentTarget.closest('.group')?.querySelector('img[data-main]');
+                                    if (img && img instanceof HTMLImageElement) {
+                                      img.src = v.image;
+                                    }
+                                  }}
+                                  onClick={e => {
+                                    const img = e.currentTarget.closest('.group')?.querySelector('img[data-main]');
+                                    if (img && img instanceof HTMLImageElement) {
+                                      img.src = v.image;
+                                    }
+                                  }}
+                                  title={v.color}
+                                />
                               ))}
                             </div>
                           )}
@@ -459,7 +498,7 @@ export default function ProductList() {
             </div>
             {/* Pagination - Luôn hiển thị ở cuối danh sách */}
             <div className="mt-10 flex justify-center">
-              <nav className="inline-flex -space-x-px rounded-lg shadow bg-white border border-gray-200" aria-label="Pagination">
+              <nav className="inline-flex -space-x-px rounded-lg shadow bg-indigo-500 border border-gray-200" aria-label="Pagination">
                 <button className="relative inline-flex items-center px-3 py-2 rounded-l-lg border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-100 transition" aria-label="Previous">
                   <span>&lt;</span>
                 </button>

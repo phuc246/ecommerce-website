@@ -11,15 +11,16 @@ const ServicesSection = () => {
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [highlighted, setHighlighted] = useState(0);
+  const [showNotify, setShowNotify] = useState(false);
 
-  // Trigger inView khi scroll tới 70% section
+  // Trigger inView khi scroll tới 50% section
   useEffect(() => {
     const handleScroll = () => {
       if (!sectionRef.current) return;
       const rect = sectionRef.current.getBoundingClientRect();
       const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-      // Kiểm tra nếu 70% section đã vào viewport
-      const threshold = 0.6;
+      // Kiểm tra nếu 50% section đã vào viewport
+      const threshold = 0.5;
       const visibleHeight = Math.min(rect.bottom, windowHeight) - Math.max(rect.top, 0);
       const sectionHeight = rect.height;
       if (visibleHeight / sectionHeight >= threshold && rect.top < windowHeight && rect.bottom > 0) {
@@ -34,7 +35,7 @@ const ServicesSection = () => {
   // Đếm ngược và showContent chỉ khi inView
   useEffect(() => {
     if (!inView || showContent) return;
-    // Timer to switch view after 5s
+    // Timer to switch view after 3s
     const contentTimer = setTimeout(() => {
       setShowContent(true);
     }, 3000);
@@ -64,14 +65,27 @@ const ServicesSection = () => {
     return () => clearInterval(interval);
   }, [showContent]);
 
+  // Tự động đóng form sau 2.5s
+  useEffect(() => {
+    if (showNotify) {
+      const t = setTimeout(() => setShowNotify(false), 2500);
+      return () => clearTimeout(t);
+    }
+  }, [showNotify]);
+
   return (
     <section ref={sectionRef} className="relative min-h-screen flex flex-col items-center justify-start pt-8 pb-16 bg-pink-50 dark:bg-gray-800 overflow-hidden">
       {/* Pink blur effect background */}
       <div className="absolute inset-0 bg-pink-200/30 dark:bg-pink-900/30 filter blur-3xl" aria-hidden="true"></div>
       <AnimatePresence mode="wait">
-        {!showContent ? (
-          <motion.div
-            key="intro-text"
+        {showNotify ? (
+          <div key="notify" className="fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 bg-white/90 border border-pink-200 shadow-xl rounded-xl px-8 py-4 text-lg font-semibold text-pink-600 flex items-center gap-2 notify-popup">
+            <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f472b6" opacity=".15"/><path d="M12 8v4" stroke="#f472b6" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="16" r="1" fill="#f472b6"/></svg>
+            Chức năng này đang được hoàn thiện, hãy cùng đón chờ nhé!
+            <button onClick={() => setShowNotify(false)} className="ml-4 px-3 py-1 rounded bg-pink-100 text-pink-600 font-bold hover:bg-pink-200 transition">Đóng</button>
+          </div>
+        ) : !showContent ? (
+          <motion.div key="intro-text"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -101,7 +115,12 @@ const ServicesSection = () => {
             </div>
           </motion.div>
         ) : (
-          <>
+          <motion.div key="service-content"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="w-full max-w-6xl z-10"
+          >
             <motion.h2
               className="text-4xl font-extrabold text-pink-500 dark:text-pink-300 drop-shadow-lg text-center mb-6 mt-0"
               initial={{ scale: 0.8, opacity: 0 }}
@@ -138,18 +157,26 @@ const ServicesSection = () => {
                       whileInView={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                      <Link href="/products" className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors">
+                      <button
+                        onClick={() => setShowNotify(true)}
+                        className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors focus:outline-none"
+                        type="button"
+                      >
                         Quà tặng cho nữ
-                      </Link>
+                      </button>
                     </motion.div>
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       whileInView={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.5, delay: 0.3 }}
                     >
-                      <Link href="/products" className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors">
+                      <button
+                        onClick={() => setShowNotify(true)}
+                        className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors focus:outline-none"
+                        type="button"
+                      >
                         Quà tặng cho nam
-                      </Link>
+                      </button>
                     </motion.div>
                   </div>
                 </div>
@@ -167,20 +194,21 @@ const ServicesSection = () => {
                   </div>
                   <h3 className="mt-6 text-xl font-semibold text-gray-900 dark:text-white">Dịch vụ cá nhân hóa</h3>
                   <div className="mt-2">
-                    <motion.a
-                      href="#"
-                      className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors"
+                    <motion.button
+                      className="btn-underline text-base font-medium text-pink-500 dark:text-pink-300 transition-colors focus:outline-none"
                       initial={{ y: 20, opacity: 0 }}
                       whileInView={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.5, delay: 0.4 }}
+                      onClick={() => setShowNotify(true)}
+                      type="button"
                     >
                       Khám phá
-                    </motion.a>
+                    </motion.button>
                   </div>
                 </div>
               </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </section>

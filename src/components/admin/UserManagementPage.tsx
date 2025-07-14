@@ -5,6 +5,52 @@ import { User, Role } from '@prisma/client';
 import toast from 'react-hot-toast';
 import Image from "next/image";
 import { Search } from 'lucide-react';
+// Hàm lấy device info từ PostHog
+async function getPosthogDeviceInfo(userId: string, email: string): Promise<any> {
+  try {
+    // Thử lấy theo userId (distinct_id)
+    let res = await fetch(
+      `${process.env.NEXT_PUBLIC_POSTHOG_HOST}/api/person/?distinct_id=${encodeURIComponent(userId)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_POSTHOG_KEY}`,
+        },
+      }
+    );
+    let data = await res.json();
+    if (data.results && data.results.length > 0) {
+      const person = data.results[0];
+      return {
+        os: person.properties?.$os,
+        browser: person.properties?.$browser,
+        device: person.properties?.$device_type,
+        lastSeen: person.properties?.$last_seen_at,
+      };
+    }
+    // Nếu không có, thử lấy theo email
+    if (email) {
+      res = await fetch(
+        `${process.env.NEXT_PUBLIC_POSTHOG_HOST}/api/person/?distinct_id=${encodeURIComponent(email)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_POSTHOG_KEY}`,
+          },
+        }
+      );
+      data = await res.json();
+      if (data.results && data.results.length > 0) {
+        const person = data.results[0];
+        return {
+          os: person.properties?.$os,
+          browser: person.properties?.$browser,
+          device: person.properties?.$device_type,
+          lastSeen: person.properties?.$last_seen_at,
+        };
+      }
+    }
+  } catch (e) { console.error('PostHog fetch error', e); }
+  return null;
+}
 
 interface UserData extends User {
   phone: string | null;
@@ -33,6 +79,7 @@ export default function UserManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [logs, setLogs] = useState<Log[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
+  const [deviceInfo, setDeviceInfo] = useState<Record<string, any>>({});
   
   const [searchTerm, setSearchTerm] = useState('');
   const [logUserFilter, setLogUserFilter] = useState("");
@@ -69,6 +116,15 @@ export default function UserManagementPage() {
   useEffect(() => {
     fetchUsers();
     fetchLogs();
+    // Lấy device info từ PostHog cho từng user
+    (async () => {
+      const info: Record<string, any> = {};
+      for (const user of users) {
+        const dev = await getPosthogDeviceInfo(user.id || '', user.email || '');
+        if (dev) info[user.id] = dev;
+      }
+      setDeviceInfo(info);
+    })();
   }, []);
   
   const filteredUsers = useMemo(() => {
@@ -146,7 +202,7 @@ export default function UserManagementPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tổng chi tiêu</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Lượt xem SP</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Lượt quay lại</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phong cách</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Thiết bị</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cập nhật lần cuối</th>
                 </tr>
               </thead>
@@ -170,9 +226,9 @@ export default function UserManagementPage() {
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{user.phone || "Chưa có"}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">{formatCurrency(user.totalSpent)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{deviceInfo[user.id]?.productViews || 0}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{deviceInfo[user.id]?.repeatVisits || 0}</td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{(user as any).device || (user as any).lastDevice || deviceInfo[user.id]?.device || deviceInfo[user.id]?.browser || '-'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.updatedAt).toLocaleString('vi-VN')}</td>
                   </tr>
                 ))}

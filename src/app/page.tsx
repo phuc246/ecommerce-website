@@ -4,10 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import VideoBackground from "@/components/VideoBackground";
-import FeaturedProducts from "@/components/home/FeaturedProducts";
-import TrendingSection from "@/components/home/TrendingSection";
-import PromotionBanner from "@/components/home/PromotionBanner";
-import ServicesSection from "@/components/home/ServicesSection";
+import dynamic from 'next/dynamic';
 import { Filter } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -17,6 +14,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ShowcaseProductsGrid from "@/components/home/ShowcaseProductsGrid";
 import CartFloatingButton, { WishlistFloatingButton } from "@/components/CartFloatingButton";
+
+// Đã xoá hoàn toàn các import FeaturedProducts, TrendingSection, PromotionBanner, ServicesSection
 
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,6 +43,11 @@ export default function Home() {
       });
   }, []);
 
+  const FeaturedProducts = dynamic(() => import('@/components/home/FeaturedProducts'), { ssr: false, loading: () => <div>Đang tải sản phẩm nổi bật...</div> });
+  const TrendingSection = dynamic(() => import('@/components/home/TrendingSection'), { ssr: false, loading: () => <div>Đang tải xu hướng...</div> });
+  const PromotionBanner = dynamic(() => import('@/components/home/PromotionBanner'), { ssr: false, loading: () => <div>Đang tải khuyến mãi...</div> });
+  const ServicesSection = dynamic(() => import('@/components/home/ServicesSection'), { ssr: false, loading: () => <div>Đang tải dịch vụ...</div> });
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section with Video Background */}
@@ -68,7 +72,7 @@ export default function Home() {
           </motion.p>
           <div className="flex space-x-4">
             <motion.div
-              whileHover={{ scale: 1.08, boxShadow: "0 0 16px #f472b6" }}
+              whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.96 }}
               initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1, transition: { type: "spring", stiffness: 400, damping: 15, delay: 1.2 } }}
@@ -95,7 +99,7 @@ export default function Home() {
             viewport={{ once: true, amount: 0.5 }}
             transition={{ duration: 1, ease: 'easeOut' }}
           >
-            <div className="container mx-auto px-2">
+            <div className="container mx-auto px-1">
               <TrendingSection />
             </div>
           </motion.div>

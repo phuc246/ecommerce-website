@@ -7,6 +7,7 @@ import Image from "next/image";
 import { PlusIcon, X, Image as ImageIcon } from "lucide-react";
 import ImageCropper, { AspectRatioOption } from '@/components/ImageCropper';
 import ProductForm from '@/components/admin/ProductForm';
+import { useSearchParams } from "next/navigation";
 
 // Types
 interface Category { id: string; name: string; parentId?: string; }
@@ -89,10 +90,14 @@ function formatCurrencyInput(value: string) {
 
 export default function AddProductPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
   const [categories, setCategories] = useState<Category[]>([]);
   const [trends, setTrends] = useState<Trend[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialData, setInitialData] = useState<any>(null);
+  const [fetchingProduct, setFetchingProduct] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,17 +113,63 @@ export default function AddProductPage() {
     fetchData();
   }, []);
 
-  const handleAdd = async (data: any) => {
+  useEffect(() => {
+    if (id) {
+      setFetchingProduct(true);
+      fetch(`/api/products/${id}`)
+        .then(res => res.ok ? res.json() : Promise.reject("Không tìm thấy sản phẩm"))
+        .then(data => setInitialData(data))
+        .catch(() => toast.error("Không thể tải sản phẩm để chỉnh sửa!"))
+        .finally(() => setFetchingProduct(false));
+    } else {
+      setInitialData(null);
+    }
+  }, [id]);
+
+  const handleSubmit = async (data: any) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Thêm sản phẩm thất bại.');
-      toast.success('Thêm sản phẩm thành công!');
-      router.push('/admin/products');
+      if (id) {
+        // Sửa sản phẩm
+        const res = await fetch(`/api/admin/products/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        let errorMsg = '';
+        if (!res.ok) {
+          try {
+            const err = await res.json();
+            errorMsg = err?.error || 'Cập nhật sản phẩm thất bại.';
+          } catch {
+            errorMsg = 'Cập nhật sản phẩm thất bại.';
+          }
+          toast.error(errorMsg);
+          return;
+        }
+        toast.success('Cập nhật sản phẩm thành công!');
+        router.push('/admin/products');
+      } else {
+        // Thêm mới sản phẩm
+        const res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        let errorMsg = '';
+        if (!res.ok) {
+          try {
+            const err = await res.json();
+            errorMsg = err?.error || 'Thêm sản phẩm thất bại.';
+          } catch {
+            errorMsg = 'Thêm sản phẩm thất bại.';
+          }
+          toast.error(errorMsg);
+          return;
+        }
+        toast.success('Thêm sản phẩm thành công!');
+        router.push('/admin/products');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Đã xảy ra lỗi không mong muốn.');
     } finally {
@@ -128,15 +179,19 @@ export default function AddProductPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 bg-gray-50/50">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Thêm sản phẩm mới</h1>
-      <ProductForm
-        mode="add"
-        onSubmit={handleAdd}
-        categories={categories}
-        trends={trends}
-        attributes={attributes}
-        loading={loading}
-      />
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">{id ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'}</h1>
+      {fetchingProduct ? (
+        <div className="text-center py-12">Đang tải dữ liệu sản phẩm...</div>
+      ) : (
+        <ProductForm
+          mode={id ? "edit" : "add"}
+          initialData={initialData}
+          onSubmit={handleSubmit}
+          categories={categories}
+          attributes={attributes}
+          loading={loading}
+        />
+      )}
     </div>
   );
 }

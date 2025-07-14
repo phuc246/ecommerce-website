@@ -5,6 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import "./ShowcaseProductsGrid.css";
 import Link from "next/link";
 
+interface ProductImage {
+  id: string;
+  url: string;
+  isMain: boolean;
+  order?: number;
+  altText?: string;
+}
 interface Product {
   id: string;
   name: string;
@@ -14,7 +21,7 @@ interface Product {
   category: { name: string };
   colors?: { name: string; value: string }[];
   description?: string;
-  images?: string[];
+  images?: ProductImage[];
   categoryId?: string;
   stock?: number;
   createdAt?: Date;
@@ -76,6 +83,21 @@ export default function ShowcaseProductsGrid() {
     return () => clearInterval(interval);
   }, [products]);
 
+  // Animation variants for staggered columns
+  const gridVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: 0.12,
+        delayChildren: 0.2,
+      },
+    },
+  };
+  const cardVariants = {
+    hidden: { opacity: 0, y: 40 },
+    show: { opacity: 1, y: 0 },
+  };
+
   return (
     <section ref={sectionRef} className="relative min-h-screen flex flex-col justify-start py-8 bg-pink-50 dark:bg-gray-800">
       {/* Lớp mờ xanh dương biển */}
@@ -118,33 +140,43 @@ export default function ShowcaseProductsGrid() {
           {show && (
             <motion.div
               key="product-grid"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+              variants={gridVariants}
               className="w-full"
             >
               <div className="grid w-full grid-cols-1 gap-4 px-2 sm:grid-cols-2 md:grid-cols-[repeat(auto-fit,minmax(220px,1fr))] justify-items-center">
-                {products.slice(0, GRID_SIZE).map((product, idx) => (
-                  <div
-                    key={product.id}
-                    className={highlighted === idx ? "relative border-animate w-full min-w-[220px] max-w-[300px] aspect-[3/4]" : "relative w-full min-w-[220px] max-w-[300px] aspect-[3/4]"}
-                  >
-                    <ProductCard 
-                      product={{
-                        ...product,
-                        description: product.description || '',
-                        images: product.images || [],
-                        categoryId: product.categoryId || '',
-                        createdAt: product.createdAt || new Date(),
-                        updatedAt: product.updatedAt || new Date(),
-                        salePrice: product.salePrice ?? null,
-                        sku: product.sku ?? null,
-                      }}
-                      hideName={true}
-                    />
-                  </div>
-                ))}
+                {products.slice(0, GRID_SIZE).map((product, idx) => {
+                  // Lấy ảnh chính từ images (isMain) hoặc ảnh đầu tiên
+                  let mainImage = product.image;
+                  if (Array.isArray(product.images) && product.images.length > 0) {
+                    const mainObj = product.images.find(img => img.isMain) || product.images[0];
+                    if (mainObj?.url) mainImage = mainObj.url;
+                  }
+                  return (
+                    <motion.div
+                      key={product.id}
+                      className={highlighted === idx ? "relative border-animate w-full min-w-[220px] max-w-[300px] aspect-[3/4]" : "relative w-full min-w-[220px] max-w-[300px] aspect-[3/4]"}
+                      variants={cardVariants}
+                      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+                    >
+                      <ProductCard 
+                        product={{
+                          ...product,
+                          image: mainImage,
+                          description: product.description || '',
+                          categoryId: product.categoryId || '',
+                          createdAt: product.createdAt || new Date(),
+                          updatedAt: product.updatedAt || new Date(),
+                          salePrice: product.salePrice ?? null,
+                          sku: product.sku ?? null,
+                        }}
+                        hideName={true}
+                      />
+                    </motion.div>
+                  );
+                })}
                 {/* Fill remaining slots with placeholders if less than GRID_SIZE products */}
                 {Array.from({ length: Math.max(0, GRID_SIZE - products.length) }).map((_, i) => (
                   <div key={`placeholder-${i}`}></div>

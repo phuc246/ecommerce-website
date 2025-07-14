@@ -5,6 +5,8 @@ import { level1s, findLevel1ById, Level1, Level2, Level3 } from 'dvhcvn';
 import { useSession } from 'next-auth/react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Sparkles } from 'lucide-react';
+import { sendPosthogEvent } from '@/lib/utils';
 
 interface Province {
   code: string;
@@ -47,6 +49,9 @@ export default function CheckoutPage() {
   const [promotionInfo, setPromotionInfo] = useState<any>(null);
   const [promotionError, setPromotionError] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [availablePromotions, setAvailablePromotions] = useState<any[]>([]);
+  const [promoLoading, setPromoLoading] = useState(true);
+  const [copiedPromo, setCopiedPromo] = useState<{[code: string]: boolean}>({});
 
   // Lấy danh sách tỉnh/thành
   useEffect(() => {
@@ -64,7 +69,9 @@ export default function CheckoutPage() {
         if (!res.ok) throw new Error('Không thể tải giỏ hàng');
         const data = await res.json();
         setCartItems(data.items || []);
-        const total = Array.isArray(data.items) ? data.items.reduce((sum: number, item: any) => sum + (item.productVariant?.price * (item.quantity || 1)), 0) : 0;
+        const total = Array.isArray(data.items)
+          ? data.items.reduce((sum: number, item: any) => sum + ((item.salePrice && item.salePrice !== item.price ? item.salePrice : item.price) * (item.quantity || 1)), 0)
+          : 0;
         setCartTotal(total);
       } catch {
         setCartItems([]);
@@ -128,9 +135,30 @@ export default function CheckoutPage() {
       });
   }, [session?.user]);
 
-  console.log('province:', province, 'findLevel1ById:', findLevel1ById(province));
+  useEffect(() => {
+    // Lấy danh sách mã giảm giá đang còn hiệu lực
+    const fetchPromos = async () => {
+      setPromoLoading(true);
+      try {
+        const res = await fetch('/api/promotions/active');
+        const data = await res.json();
+        setAvailablePromotions(Array.isArray(data) ? data : []);
+      } catch {
+        setAvailablePromotions([]);
+      } finally {
+        setPromoLoading(false);
+      }
+    };
+    fetchPromos();
+  }, []);
+
+  const handleCopyPromo = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedPromo(prev => ({ ...prev, [code]: true }));
+    setTimeout(() => setCopiedPromo(prev => ({ ...prev, [code]: false })), 2000);
+  };
+
   const districts: Level2[] = province ? (findLevel1ById(String(province))?.children ?? []) : [];
-  console.log('district:', district, 'districts:', districts);
   const wards: Level3[] = district ? (districts.find(d => String(d.id) === String(district))?.children ?? []) : [];
 
   const handleChange = (e: any) => {
@@ -272,6 +300,10 @@ export default function CheckoutPage() {
       });
       if (!response.ok) throw new Error('Đặt hàng thất bại!');
       setOrderSuccess(true);
+      // Trigger cập nhật badge/toast ở Navbar
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
     } catch (error) {
       alert('Đặt hàng thất bại! Vui lòng thử lại.');
     } finally {
@@ -305,6 +337,10 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleOrderSuccess = (order: { id: string; total: number }) => {
+    sendPosthogEvent('order_success', { orderId: order.id, total: order.total });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-200 via-fuchsia-100 to-blue-100 py-12 px-2 animate-fade-in">
       <div className="w-full max-w-2xl bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/40">
@@ -318,7 +354,10 @@ export default function CheckoutPage() {
             <div className="text-4xl mb-4 animate-bounce">🎉</div>
             <div className="text-xl font-bold text-pink-600 mb-2 animate-slide-in-down">Đặt hàng thành công!</div>
             <div className="text-gray-600 mb-4 animate-fade-in">Cảm ơn bạn đã mua sắm tại shop!</div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-4">
             <button className="px-6 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white rounded-xl font-bold shadow hover:scale-110 hover:shadow-xl transition-all animate-fade-in-up" onClick={() => router.push("/")}>Về trang chủ</button>
+              <button className="px-6 py-2 bg-gradient-to-r from-blue-500 to-pink-400 text-white rounded-xl font-bold shadow hover:scale-110 hover:shadow-xl transition-all animate-fade-in-up" onClick={() => router.push("/profile/orders")}>Xem đơn hàng</button>
+            </div>
           </div>
         ) : (
           <form className="space-y-5 animate-fade-in-up" onSubmit={handleSubmit}>
@@ -408,13 +447,15 @@ export default function CheckoutPage() {
                 ) : (
                   cartItems.map((item, idx) => (
                     <div key={item.id} className="flex items-center gap-4 py-2">
-                      <img src={item.productVariant?.product?.image} alt={item.productVariant?.product?.name} className="w-14 h-14 rounded-lg object-cover border border-pink-200" />
+                      <img src={item.variantImage || item.productVariant?.image || item.productVariant?.product?.image} alt={item.productVariant?.product?.name} className="w-14 h-14 rounded-lg object-cover border border-pink-200" />
                       <div className="flex-1">
                         <div className="font-semibold text-gray-800">{item.productVariant?.product?.name}</div>
                         <div className="text-xs text-gray-500">Màu: {item.productVariant?.color} | Size: {item.productVariant?.size}</div>
                       </div>
                       <div className="text-sm text-gray-700">x{item.quantity}</div>
-                      <div className="text-pink-600 font-bold min-w-[80px] text-right">{(item.productVariant?.price * item.quantity).toLocaleString()}đ</div>
+                      <div className="text-pink-600 font-bold min-w-[80px] text-right">
+                        {((item.salePrice && item.salePrice !== item.price ? item.salePrice : item.price) * item.quantity).toLocaleString()}đ
+                      </div>
                     </div>
                   ))
                 )}
@@ -456,6 +497,54 @@ export default function CheckoutPage() {
                 </div>
               )}
             </div>
+            {/* --- Compact voucher box --- */}
+            <div className="mb-2">
+              <div className="font-bold text-pink-700 mb-1 flex items-center gap-2">
+                <Sparkles className="text-yellow-400 animate-pulse" size={18} />
+                Mã giảm giá đang có
+              </div>
+              <div
+                className={
+                  availablePromotions.length > 2
+                    ? 'flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-pink-200 scrolling-touch'
+                    : 'flex flex-wrap gap-2'
+                }
+              >
+                {promoLoading ? (
+                  <div className="text-gray-400 text-sm">Đang tải...</div>
+                ) : availablePromotions.length === 0 ? (
+                  <div className="text-gray-400 text-sm">Chưa có mã giảm giá nào</div>
+                ) : (
+                  availablePromotions.map((promo) => (
+                    <div
+                      key={promo.id}
+                      className={
+                        'flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1 text-sm font-mono shadow-sm' +
+                        (availablePromotions.length > 2 ? ' min-w-[210px] max-w-[320px]' : '')
+                      }
+                    >
+                      <span className="font-bold text-pink-700">{promo.code}</span>
+                      <span className="text-xs font-semibold text-pink-700 bg-white/80 rounded px-2 py-0.5">
+                        {promo.discountType === 'PERCENTAGE'
+                          ? `Giảm ${promo.discountValue}%`
+                          : promo.discountType === 'FIXED_AMOUNT'
+                            ? `Giảm ${Number(promo.discountValue).toLocaleString()}đ`
+                            : ''}
+                      </span>
+                      <button
+                        type="button"
+                        className="ml-1 px-2 py-0.5 rounded bg-pink-100 text-pink-700 border border-pink-200 hover:bg-pink-200 transition text-xs font-bold"
+                        onClick={() => handleCopyPromo(promo.code)}
+                        aria-label="Sao chép mã giảm giá"
+                      >
+                        {copiedPromo[promo.code] ? 'Đã sao chép!' : 'Sao chép'}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            {/* --- End compact voucher box --- */}
             <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2 bg-yellow-50 rounded-xl p-4 border border-yellow-200 shadow">
               <div className="flex-1">
                 <Input
@@ -475,9 +564,7 @@ export default function CheckoutPage() {
               <div>
                 <div className="text-pink-700 font-semibold">Phí vận chuyển: <span className="font-bold">{SHIPPING_FEE.toLocaleString()}đ</span></div>
                 <div className="text-pink-700 font-semibold">Tổng tiền hàng: <span className="font-bold">{cartTotal.toLocaleString()}đ</span></div>
-                {discountAmount > 0 && (
-                  <div className="text-pink-700 font-semibold ">Giảm giá: <span className="font-bold">-{-discountAmount.toLocaleString()}đ</span></div>
-                )}
+                <div className="text-pink-700 font-semibold ">Giảm giá: <span className="font-bold">-{Number(discountAmount) > 0 ? Number(discountAmount).toLocaleString() : '0'}đ</span></div>
                 <div className="text-pink-700 font-bold text-lg mt-1">Tổng thanh toán: <span className="text-2xl">{(cartTotal - discountAmount + SHIPPING_FEE).toLocaleString()}đ</span></div>
               </div>
               <button type="submit" className="px-8 py-3 bg-gradient-to-r from-pink-500 to-fuchsia-500 text-white rounded-xl font-bold shadow hover:scale-110 hover:shadow-xl transition-all text-lg">Xác nhận đặt hàng</button>

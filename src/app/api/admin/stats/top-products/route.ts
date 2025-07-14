@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   // Lấy top 5 sản phẩm bán chạy nhất (tổng số lượng đã bán, chỉ tính đơn DELIVERED)
   const items = await prisma.orderItem.findMany({
-    where: { order: { status: 'DELIVERED' } },
+    where: { order: { status: { not: 'CANCELLED' } } },
     include: { productVariant: { include: { product: true } } },
   });
   const productSales: Record<string, { name: string, sold: number }> = {};

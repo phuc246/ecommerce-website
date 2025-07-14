@@ -5,10 +5,12 @@ export type CartItem = {
   productVariantId: string;
   name: string;
   price: number;
+  salePrice?: number | null;
   image: string;
   color: string;
   size: string;
   quantity: number;
+  stock: number; // Thêm trường stock
 };
 
 type CartStore = {
@@ -39,10 +41,12 @@ export const useCart = create<CartStore>()((set, get) => ({
         productVariantId: item.productVariantId,
         name: item.productVariant?.product?.name || '',
         price: item.productVariant?.price || 0,
-        image: item.productVariant?.product?.image || '',
+        salePrice: item.salePrice ?? null,
+        image: item.variantImage || item.productVariant?.product?.image || '',
         color: item.productVariant?.color || '',
         size: item.productVariant?.size || '',
         quantity: item.quantity,
+        stock: item.stock ?? 0, // Lấy stock từ API
       }));
       set({ items: validItems });
       // Nếu không có item hợp lệ, xóa localStorage cart

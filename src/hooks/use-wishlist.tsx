@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { sendPosthogEvent } from '@/lib/utils';
 
 
 interface Product {
@@ -40,6 +41,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToWishlist = async (productId: string): Promise<boolean> => {
+    sendPosthogEvent('add_to_wishlist', { productId });
     const res = await fetch('/api/user/wishlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -62,6 +64,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromWishlist = async (productId: string): Promise<boolean> => {
+    sendPosthogEvent('remove_from_wishlist', { productId });
     const res = await fetch(`/api/user/wishlist/${productId}`, { method: 'DELETE' });
     let data: any = {};
     try { data = await res.json(); } catch {}

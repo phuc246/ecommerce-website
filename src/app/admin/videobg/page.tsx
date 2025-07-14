@@ -167,9 +167,10 @@ export default function VideoBackgroundAdminPage() {
           {uploadingHeader && (
             <div className="w-full max-w-md my-2">
               <div className="bg-gray-200 rounded h-2 overflow-hidden">
+                {/* eslint-disable-next-line react/style-prop-object */}
                 <div
                   className="bg-pink-500 h-2 transition-all duration-200"
-                  style={{ width: `${headerProgress}%` }}
+                  style={{ width: headerProgress + '%' }}
                 />
               </div>
               <div className="text-xs text-gray-500 mt-1">Đang upload: {headerProgress}%</div>
@@ -207,9 +208,10 @@ export default function VideoBackgroundAdminPage() {
           {uploadingBg && (
             <div className="w-full max-w-md my-2">
               <div className="bg-gray-200 rounded h-2 overflow-hidden">
+                {/* eslint-disable-next-line react/style-prop-object */}
                 <div
                   className="bg-pink-500 h-2 transition-all duration-200"
-                  style={{ width: `${bgProgress}%` }}
+                  style={{ width: bgProgress + '%' }}
                 />
               </div>
               <div className="text-xs text-gray-500 mt-1">Đang upload: {bgProgress}%</div>

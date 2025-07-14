@@ -122,7 +122,6 @@ export default function AdminCategoriesPage() {
         name: formData.name,
         parentId: parentCategory !== '' ? parentCategory : null
       };
-      console.log('categoryData gửi lên:', categoryData);
 
       let response;
       if (editingCategory) {
@@ -323,14 +322,19 @@ export default function AdminCategoriesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Tên danh mục</label>
-              <input
-                id="name"
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500"
-                required
-              />
+              <div className="relative">
+                <input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-pink-500 focus:border-pink-500 pr-16"
+                  required
+                  maxLength={50}
+                  placeholder="Ví dụ: Thời trang nữ"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none bg-white px-1">{formData.name.length}/50</span>
+              </div>
             </div>
             <div>
               <label htmlFor="parentCategory" className="block text-sm font-medium text-gray-700 mb-1">Danh mục cha</label>

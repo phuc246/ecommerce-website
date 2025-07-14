@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { prisma } from '@/lib/prisma';
 import AddToCartButton from '../AddToCartButton';
 import { motion } from 'framer-motion';
 import { useWishlist } from '@/hooks/use-wishlist';
@@ -19,6 +18,7 @@ interface Product {
   category: {
     name: string;
   };
+  sold?: number; // Added sold property
 }
 
 export default function FeaturedProducts() {
@@ -84,9 +84,6 @@ export default function FeaturedProducts() {
       {products.slice(0, 12).map((product, idx) => (
         <div key={product.id} className="relative w-full h-full max-w-[480px] mx-auto">
           <div className="relative w-full aspect-[3/4] h-auto group rounded-2xl overflow-hidden shadow-lg">
-            {idx === 0 && (
-              <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-20 shadow">Hot</span>
-            )}
             <motion.div
               animate={highlighted === idx
                 ? { y: [0, -18, 0, -12, 0, -6, 0] }
@@ -103,6 +100,11 @@ export default function FeaturedProducts() {
                 className="object-cover w-full h-full"
                 sizes="(max-width: 640px) 90vw, (max-width: 1200px) 33vw, 16vw"
               />
+              {/* Sold badge top right with heart-on-fire icon and animation - sát mép phải */}
+              <div className="absolute top-3 right-0 bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 rounded-full z-20 shadow flex items-center gap-0.5 text-xs text-white font-bold min-w-fit justify-center px-1 py-0.5 animate-bounce-slow badge-no-pointer-events">
+                <img src="https://emojigraph.org/media/72/apple/heart-on-fire_2764-fe0f-200d-1f525.png" alt="Sold" className="w-5 h-5 animate-wiggle" />
+                <span className="pl-0.5 pr-1">{(product.sold ?? 0) >= 100 ? '99+' : (product.sold ?? 0)}</span>
+              </div>
             </motion.div>
             {/* Overlay action buttons on hover */}
             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-10">

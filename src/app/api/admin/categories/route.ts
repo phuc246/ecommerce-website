@@ -151,8 +151,6 @@ export async function PUT(request: Request) {
       where: { id },
       data: { name },
     });
-    // Debug trước khi ghi log
-    console.log('GHI LOG CATEGORY UPDATE', { userId: session.user.id, id, oldCategory, category });
     try {
       const logResult = await prisma.log.create({
         data: {
@@ -166,7 +164,6 @@ export async function PUT(request: Request) {
           details: JSON.stringify({ name: category.name, changes: { before: { name: oldCategory?.name }, after: { name: category.name } }, adminEmail: session?.user?.email || null }),
         },
       });
-      console.log('GHI LOG CATEGORY UPDATE DONE', logResult);
     } catch (logError) {
       console.error('GHI LOG CATEGORY UPDATE ERROR', logError);
     }
@@ -201,8 +198,6 @@ export async function DELETE(request: Request) {
 
     // Lấy thông tin cũ
     const oldCategory = await prisma.category.findUnique({ where: { id } });
-    // Debug trước khi xoá
-    console.log('GHI LOG CATEGORY DELETE', { userId: session.user.id, id, oldCategory });
     await prisma.category.delete({ where: { id } });
     try {
       const logResult = await prisma.log.create({
@@ -217,7 +212,6 @@ export async function DELETE(request: Request) {
           details: JSON.stringify({ name: oldCategory?.name || '', changes: { before: oldCategory }, adminEmail: session?.user?.email || null }),
         },
       });
-      console.log('GHI LOG CATEGORY DELETE DONE', logResult);
     } catch (logError) {
       console.error('GHI LOG CATEGORY DELETE ERROR', logError);
     }

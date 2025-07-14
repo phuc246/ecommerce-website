@@ -54,7 +54,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 50%, #f68084 100%);
   }
 }
 
@@ -577,3 +577,13 @@ html {
 .animate-fade-in {
   animation: fade-in 0.8s ease both;
 }
+
+.scrolling-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Related products slider min-height utility classes */
+.related-slider-minheight-1 { min-height: 224px; }
+.related-slider-minheight-2 { min-height: 464px; }
+.related-slider-minheight-3 { min-height: 704px; }
+.related-slider-minheight-4 { min-height: 944px; }

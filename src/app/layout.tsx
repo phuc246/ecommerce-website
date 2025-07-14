@@ -1,24 +1,29 @@
+'use client';
+
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import AuthProvider from "@/providers/AuthProvider";
 import { WishlistProvider } from "@/hooks/use-wishlist";
 import Layout from "@/components/Layout";
-import AnalyticsClient from '@/components/AnalyticsClient';
 import { CSPostHogProvider } from "@/providers/PostHogProvider";
 import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
+import { sendPosthogEvent } from '@/lib/utils';
+import posthog from '@/lib/posthog';
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: 'Doovin',
-  description: 'Doovin - E-commerce',
-  icons: {
-    icon: '/favicon.ico',
-  },
-};
-
 function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  useEffect(() => {
+    sendPosthogEvent('$pageview', { pathname });
+    const handlePageLeave = () => {
+      posthog.capture && posthog.capture('$pageleave');
+    };
+    window.addEventListener('beforeunload', handlePageLeave);
+    return () => window.removeEventListener('beforeunload', handlePageLeave);
+  }, [pathname]);
   return (
     <AuthProvider>
       <CSPostHogProvider>
@@ -40,11 +45,20 @@ export default function RootLayout({
   const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
   const isAdmin = pathname.startsWith('/admin');
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="vi">
+      <body className={inter.className + " min-h-screen"}>
         <Providers>{children}</Providers>
-        <Toaster position="top-center" richColors />
-        <AnalyticsClient />
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{
+            style: { maxWidth: 360, width: '100%', margin: '0.5rem 0' },
+            className: 'shadow-lg rounded-xl',
+          }}
+          gap={16}
+          visibleToasts={5}
+        />
       </body>
     </html>
   );

@@ -15,6 +15,7 @@ export default function VideoBackground({ videoSrc }: VideoBackgroundProps) {
       loop
       muted
       playsInline
+      preload="none"
       className="w-full h-full object-cover absolute inset-0 z-0"
       initial={{ opacity: 0, scale: 1.05 }}
       animate={{ opacity: 1, scale: 1 }}
