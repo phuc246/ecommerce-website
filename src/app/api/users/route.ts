@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 
+export const dynamic = 'force-dynamic';
+
 const querySchema = z.object({
   page: z.string().optional().transform(Number).default("1"),
   limit: z.string().optional().transform(Number).default("10"),

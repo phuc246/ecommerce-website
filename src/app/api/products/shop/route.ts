@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
+export const dynamic = 'force-dynamic';
+
 // GET all products for the shop (public access)
 export async function GET(request: Request) {
   try {
