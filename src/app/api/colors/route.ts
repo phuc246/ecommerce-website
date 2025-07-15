@@ -3,19 +3,17 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Get unique colors from all products
-    const colors = await prisma.color.findMany({
-      distinct: ['value'],
+    // Lấy danh sách màu duy nhất và ảnh đại diện từ productVariant
+    const colors = await prisma.productVariant.findMany({
+      distinct: ['color'],
       select: {
-        id: true,
-        name: true,
-        value: true,
+        color: true,
+        image: true,
       },
       orderBy: {
-        name: 'asc',
+        color: 'asc',
       },
     });
-
     return NextResponse.json(colors);
   } catch (error) {
     console.error('Error fetching colors:', error);

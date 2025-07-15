@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/admin/promotions/[id]
@@ -64,7 +64,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     await prisma.log.create({
       data: {
         adminId: session.user.id,
-        message: session.user.email,
+        message: session.user.email ?? "",
         level: session.user.role,
         action: 'UPDATE',
         entity: 'promotion',
@@ -94,7 +94,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     await prisma.log.create({
       data: {
         adminId: session.user.id,
-        message: session.user.email,
+        message: session.user.email ?? "",
         level: session.user.role,
         action: 'DELETE',
         entity: 'promotion',

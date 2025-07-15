@@ -3,22 +3,19 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // Lấy tất cả size
-    const sizes = await prisma.size.findMany({
-      select: {
-        id: true,
-        name: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
+    // Lấy tất cả size distinct từ ProductVariant
+    const sizes = await prisma.productVariant.findMany({
+      select: { size: true },
+      distinct: ['size']
     });
+    // Nếu muốn trả về mảng string:
+    // const sizeList = sizes.map(s => s.size);
 
     // Lọc trùng name phía server
     const uniqueSizesMap = new Map();
     sizes.forEach((size) => {
-      if (!uniqueSizesMap.has(size.name)) {
-        uniqueSizesMap.set(size.name, size);
+      if (!uniqueSizesMap.has(size.size)) {
+        uniqueSizesMap.set(size.size, size);
       }
     });
     const uniqueSizes = Array.from(uniqueSizesMap.values());

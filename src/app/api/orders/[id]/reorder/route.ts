@@ -19,7 +19,11 @@ export async function POST(
       include: {
         items: {
           include: {
-            product: true,
+            productVariant: {
+              include: {
+                product: true,
+              },
+            },
           },
         },
       },
@@ -49,9 +53,9 @@ export async function POST(
 
     // Add items to cart
     for (const item of order.items) {
-      // Check if product is still available and has enough stock
-      const product = item.product;
-      if (!product || product.stock < item.quantity) {
+      // Check if productVariant còn tồn kho đủ
+      const variant = item.productVariant;
+      if (!variant || variant.stock < item.quantity) {
         continue; // Skip unavailable items
       }
 
@@ -59,7 +63,7 @@ export async function POST(
       const existingItem = await prisma.cartItem.findFirst({
         where: {
           cartId: cart.id,
-          productId: item.productId,
+          productVariantId: variant.id,
         },
       });
 
@@ -76,7 +80,7 @@ export async function POST(
         await prisma.cartItem.create({
           data: {
             cartId: cart.id,
-            productId: item.productId,
+            productVariantId: variant.id,
             quantity: item.quantity,
           },
         });

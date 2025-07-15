@@ -93,7 +93,7 @@ export default function CheckoutPage() {
           setForm({
             name: defaultAddr.fullName,
             phone: defaultAddr.phone,
-            email: session.user.email,
+            email: session.user.email ?? "",
             address: defaultAddr.address,
           });
           setProvince(defaultAddr.city);
@@ -374,7 +374,7 @@ export default function CheckoutPage() {
                       setForm({
                         name: defaultAddr.fullName,
                         phone: defaultAddr.phone,
-                        email: session?.user?.email || '',
+                        email: session?.user?.email ?? "",
                         address: defaultAddr.address,
                       });
                       setProvince(defaultAddr.city);
@@ -391,7 +391,7 @@ export default function CheckoutPage() {
                   checked={addressType === 'new'}
                   onChange={() => {
                     setAddressType('new');
-                    setForm({ name: '', phone: '', email: session?.user?.email || '', address: '' });
+                    setForm({ name: '', phone: '', email: session?.user?.email ?? "", address: '' });
                     setProvince('');
                     setDistrict('');
                     setWard('');

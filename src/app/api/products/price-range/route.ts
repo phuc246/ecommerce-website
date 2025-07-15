@@ -4,22 +4,16 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     // Find min and max prices from all products
-    const [minResult, maxResult] = await Promise.all([
-      prisma.product.aggregate({
-        _min: {
-          price: true,
-        },
-      }),
-      prisma.product.aggregate({
-        _max: {
-          price: true,
-        },
-      }),
-    ]);
+    const minPrice = await prisma.productVariant.aggregate({
+      _min: { price: true },
+    });
+    const maxPrice = await prisma.productVariant.aggregate({
+      _max: { price: true },
+    });
 
     // Default values in case there are no products
-    const min = minResult._min.price || 0;
-    const max = maxResult._max.price || 10000000;
+    const min = minPrice._min.price || 0;
+    const max = maxPrice._max.price || 10000000;
 
     return NextResponse.json({
       min,

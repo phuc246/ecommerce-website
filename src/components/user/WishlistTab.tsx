@@ -13,7 +13,7 @@ interface Product {
 }
 
 export default function WishlistTab() {
-  const { wishlist, loading, removeFromWishlist, isPending = false } = useWishlist();
+  const { wishlist, loading, removeFromWishlist } = useWishlist();
 
   if (loading) return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -39,11 +39,11 @@ export default function WishlistTab() {
             <div className="text-blue-600 font-bold text-xl mb-2">{product.price.toLocaleString()}₫</div>
           </Link>
           <button className="mt-auto px-3 py-2 rounded border border-gray-300 hover:bg-gray-100" onClick={() => {
-            removeFromWishlist(product.id, (ok, msg) => {
+            removeFromWishlist(product.id).then(ok => {
               if (ok) toast.success('Đã bỏ khỏi yêu thích!');
-              else toast.error(msg || 'Lỗi!');
+              else toast.error('Lỗi!');
             });
-          }} disabled={isPending}>
+          }}>
             Bỏ khỏi yêu thích
           </button>
         </div>

@@ -55,7 +55,7 @@ export default function UserProfileTabs({ user }: UserProfileTabsProps) {
         </TabsContent>
         
         <TabsContent value="payment-methods">
-          <PaymentMethodsTab userId={user.id} />
+          <PaymentMethodsTab />
         </TabsContent>
         
         <TabsContent value="order-history">

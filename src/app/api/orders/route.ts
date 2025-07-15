@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     for (const item of items) {
       const variant = variants.find(v => v.id === item.productVariantId);
       if (!variant) {
+        // Return ngay khi có lỗi, không để code chạy tiếp
         return NextResponse.json({ error: `Không tìm thấy biến thể sản phẩm: ${item.productVariantId}` }, { status: 400 });
       }
       if (variant.stock <= 0) {
@@ -60,106 +61,120 @@ export async function POST(request: Request) {
       }
     }
     // Tạo đơn hàng và trừ kho
-    const order = await prisma.$transaction(async (tx) => {
-      // Trừ kho và ghi log
-      for (const item of items) {
-        const variant = variants.find(v => v.id === item.productVariantId);
-        await tx.productVariant.update({
-          where: { id: item.productVariantId },
-          data: { stock: { decrement: item.quantity } },
-        });
-        // Ghi log
-        await tx.log.create({
+    let createdOrder;
+    try {
+      createdOrder = await prisma.$transaction(async (tx) => {
+        // Trừ kho và ghi log
+        for (const item of items) {
+          const variant = variants.find(v => v.id === item.productVariantId);
+          await tx.productVariant.update({
+            where: { id: item.productVariantId },
+            data: { stock: { decrement: item.quantity } },
+          });
+          // Ghi log
+          await tx.log.create({
+            data: {
+              level: 'INFO',
+              message: `Trừ ${item.quantity} ${variant?.product.name} ${variant?.color} ${variant?.size} khi tạo đơn #TEMP`,
+              action: 'INVENTORY_DECREASE',
+              entity: 'ProductVariant',
+              entityId: item.productVariantId,
+              adminId: session.user.id,
+            },
+          });
+        }
+        // Trước khi tính tổng tiền:
+        let discountAmount = 0;
+        let promotion = null;
+        if (promotionCode) {
+          // Kiểm tra mã giảm giá hợp lệ
+          const now = new Date();
+          promotion = await tx.promotion.findFirst({
+            where: {
+              code: promotionCode,
+              isActive: true,
+              startDate: { lte: now },
+              endDate: { gte: now },
+            },
+          });
+          if (!promotion) {
+            // Throw error để transaction rollback, không trả về NextResponse trong transaction
+            throw new Error('Mã giảm giá không hợp lệ hoặc đã hết hạn!');
+          }
+        }
+        // Tính tổng tiền
+        let subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        let total = subtotal;
+        let shippingFee = 30000;
+        if (promotion) {
+          if (promotion.discountType === 'PERCENTAGE') {
+            discountAmount = Math.round(subtotal * promotion.discountValue / 100);
+          } else if (promotion.discountType === 'FIXED_AMOUNT') {
+            discountAmount = Math.round(promotion.discountValue);
+          }
+          total = Math.max(0, subtotal - discountAmount);
+        }
+        total = total + shippingFee;
+        // Tạo đơn hàng
+        const createdOrder = await tx.order.create({
           data: {
-            level: 'INFO',
-            message: `Trừ ${item.quantity} ${variant?.product.name} ${variant?.color} ${variant?.size} khi tạo đơn #TEMP`,
-            action: 'INVENTORY_DECREASE',
-            entity: 'ProductVariant',
-            entityId: item.productVariantId,
-            adminId: session.user.id,
-          },
-        });
-      }
-      // Trước khi tính tổng tiền:
-      let discountAmount = 0;
-      let promotion = null;
-      if (promotionCode) {
-        // Kiểm tra mã giảm giá hợp lệ
-        const now = new Date();
-        promotion = await prisma.promotion.findFirst({
-          where: {
-            code: promotionCode,
-            isActive: true,
-            startDate: { lte: now },
-            endDate: { gte: now },
-          },
-        });
-        if (!promotion) {
-          return NextResponse.json({ error: 'Mã giảm giá không hợp lệ hoặc đã hết hạn!' }, { status: 400 });
-        }
-      }
-      // Tính tổng tiền
-      let subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      let total = subtotal;
-      let shippingFee = 30000;
-      if (promotion) {
-        if (promotion.discountType === 'PERCENTAGE') {
-          discountAmount = Math.round(subtotal * promotion.discountValue / 100);
-        } else if (promotion.discountType === 'FIXED_AMOUNT') {
-          discountAmount = Math.round(promotion.discountValue);
-        }
-        total = Math.max(0, subtotal - discountAmount);
-      }
-      total = total + shippingFee;
-      // Tạo đơn hàng
-      const createdOrder = await tx.order.create({
-        data: {
-          userId: session.user.id,
-          total,
-          status: 'PENDING',
-          shippingAddress,
-          paymentMethod,
-          phone: phone || null,
-          pendingAt: new Date(),
-          promotionCode: promotion ? promotion.code : null,
-          discountAmount: promotion ? discountAmount : null,
-          shippingFee,
-          subtotal,
-          items: {
-            create: items.map((item: any) => ({
-              productVariantId: item.productVariantId,
-              quantity: item.quantity,
-              price: item.price,
-            })),
-          },
-        },
-        include: {
-          items: {
-            include: {
-              productVariant: { include: { product: true } },
+            userId: session.user.id,
+            total,
+            status: 'PENDING',
+            shippingAddress,
+            paymentMethod,
+            phone: phone || null,
+            pendingAt: new Date(),
+            promotionCode: promotion ? promotion.code : null,
+            discountAmount: promotion ? discountAmount : null,
+            shippingFee,
+            subtotal,
+            items: {
+              create: items.map((item: any) => ({
+                productVariantId: item.productVariantId,
+                quantity: item.quantity,
+                price: item.price,
+              })),
             },
           },
-        },
+          include: {
+            items: {
+              include: {
+                productVariant: { include: { product: true } },
+              },
+            },
+          },
+        });
+        // Sau khi tạo đơn, cập nhật lại log với orderId thật
+        for (const item of items) {
+          await tx.log.updateMany({
+            where: {
+              entity: 'ProductVariant',
+              entityId: item.productVariantId,
+              message: { contains: '#TEMP' },
+            },
+            data: {
+              message: {
+                set: `Trừ ${item.quantity} ${variants.find(v => v.id === item.productVariantId)?.product.name} ${variants.find(v => v.id === item.productVariantId)?.color} ${variants.find(v => v.id === item.productVariantId)?.size} khi tạo đơn #${createdOrder.id}`,
+              },
+            },
+          });
+        }
+        return createdOrder;
       });
-      // Sau khi tạo đơn, cập nhật lại log với orderId thật
-      for (const item of items) {
-        await tx.log.updateMany({
-          where: {
-            entity: 'ProductVariant',
-            entityId: item.productVariantId,
-            message: { contains: '#TEMP' },
-          },
-          data: {
-            message: {
-              set: `Trừ ${item.quantity} ${variants.find(v => v.id === item.productVariantId)?.product.name} ${variants.find(v => v.id === item.productVariantId)?.color} ${variants.find(v => v.id === item.productVariantId)?.size} khi tạo đơn #${createdOrder.id}`,
-            },
-          },
-        });
+    } catch (err: any) {
+      // Nếu lỗi là mã giảm giá, trả về lỗi hợp lệ
+      if (err instanceof Error && err.message && err.message.includes('Mã giảm giá')) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
       }
-      return createdOrder;
-    });
+      // Lỗi khác
+      return NextResponse.json({
+        error: err instanceof Error ? err.message : 'Internal error',
+        detail: err instanceof Error ? err.stack : JSON.stringify(err),
+      }, { status: 500 });
+    }
     // Chuẩn hóa dữ liệu trả về
-    const orderItems = order.items.map(item => ({
+    const orderItems = createdOrder.items.map(item => ({
       productVariantId: item.productVariantId,
       quantity: item.quantity,
       price: item.price,
@@ -169,21 +184,24 @@ export async function POST(request: Request) {
       sku: item.productVariant.sku,
     }));
     return NextResponse.json({
-      id: order.id,
-      total: order.total,
-      status: order.status,
-      shippingAddress: order.shippingAddress,
-      paymentMethod: order.paymentMethod,
+      id: createdOrder.id,
+      total: createdOrder.total,
+      status: createdOrder.status,
+      shippingAddress: createdOrder.shippingAddress,
+      paymentMethod: createdOrder.paymentMethod,
       items: orderItems,
-      createdAt: order.createdAt,
-      promotionCode: order.promotionCode,
-      discountAmount: order.discountAmount,
-      shippingFee: order.shippingFee,
-      subtotal: order.subtotal,
+      createdAt: createdOrder.createdAt,
+      promotionCode: createdOrder.promotionCode,
+      discountAmount: createdOrder.discountAmount,
+      shippingFee: createdOrder.shippingFee,
+      subtotal: createdOrder.subtotal,
     });
   } catch (error) {
     console.error('[ORDER_CREATE]', error);
-    return NextResponse.json({ error: error?.message || 'Internal error', detail: String(error) }, { status: 500 });
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message, detail: error.stack }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Internal error', detail: JSON.stringify(error) }, { status: 500 });
   }
 }
 

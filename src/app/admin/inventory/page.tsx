@@ -183,7 +183,7 @@ export default function InventoryPage() {
                 ) : (
                   filteredProducts.map(product => (
                     product.colors.map((color, idx) => {
-                      const colorKey = product.productId + '-' + color.color + '-' + (color.colorHex || '');
+                      const colorKey = product.productId + '-' + color.color;
                       const rowClass = `border-b bg-white hover:bg-pink-50 cursor-pointer ${idx === 0 ? 'border-t-2 border-pink-300' : ''}`;
                       return (
                         <React.Fragment key={colorKey}>
