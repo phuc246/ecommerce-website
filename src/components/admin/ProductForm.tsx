@@ -141,28 +141,16 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
     fileInputRef.current?.click();
   };
 
-  // --- Sửa handleFileSelect để upload ngay khi chọn ảnh ---
+  // --- Sửa handleFileSelect để mở cropper thay vì upload trực tiếp ---
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      try {
-        setIsUploading(true);
-        const url = await uploadToCloudinary(file);
-        if (croppingTarget?.type === 'main') {
-          setMainImage({ url, file: null });
-        } else if (croppingTarget?.type === 'additional') {
-          setAdditionalImages(prev => [...prev, { url, file: null, order: prev.length + 1 }].slice(0, 6));
-        } else if (croppingTarget?.type === 'variant' && croppingTarget.id) {
-          handleVariantChange(croppingTarget.id, 'image', url);
-          handleVariantChange(croppingTarget.id, 'imageFile', null);
-        }
-        setCropImage(null);
-        setCroppingTarget(null);
-      } catch (error) {
-        toast.error('Upload ảnh thất bại, vui lòng thử lại.');
-      } finally {
-        setIsUploading(false);
-      }
+      // Đọc file thành dataURL để crop
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setCropImage(ev.target?.result as string); // Mở cropper
+      };
+      reader.readAsDataURL(file);
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };

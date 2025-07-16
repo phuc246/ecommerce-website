@@ -20,6 +20,7 @@ export default function TrendingSection() {
   const [trends, setTrends] = useState<TrendingCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [imageFallbacks, setImageFallbacks] = useState<Record<string, boolean>>({});
+  const [popupTrend, setPopupTrend] = useState<TrendingCategory | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -100,8 +101,8 @@ export default function TrendingSection() {
                       : 'w-1/3 max-w-lg')
               }
             >
-              <Link href={`/trends/${trend.id}`} prefetch={false} className="group/card relative block">
-                <div className="relative overflow-hidden rounded-lg aspect-[3/4]">
+                <div className="relative overflow-hidden rounded-lg aspect-[3/4] w-full group">
+                  <button type="button" className="w-full h-full absolute inset-0 z-10 focus:outline-none" onClick={() => setPopupTrend(trend)} aria-label={`Xem ảnh lớn trend ${trend.name}`}></button>
                   <Image
                     src={trend.image}
                     alt={trend.name}
@@ -110,40 +111,47 @@ export default function TrendingSection() {
                     className="object-cover transition-transform duration-500 group-hover/card:scale-110"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-30 group-hover/card:bg-opacity-50 transition-all duration-300" />
+                  <div className="absolute bottom-0 left-0 p-4 text-white z-20">
+                    <h3 className="font-bold text-lg drop-shadow-lg">{trend.name}</h3>
+                    <p className="text-sm drop-shadow-md">{trend.productCount} sản phẩm</p>
+                    <a
+                      href={`/trends/${trend.id}`}
+                      className="text-sm mt-2 inline-block font-semibold group-hover/card:underline drop-shadow-md cursor-pointer opacity-80"
+                      style={{ pointerEvents: 'auto' }}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      Khám phá ngay &rarr;
+                    </a>
+                  </div>
                 </div>
-                <div className="absolute bottom-0 left-0 p-4 text-white">
-                  <h3 className="font-bold text-lg drop-shadow-lg">{trend.name}</h3>
-                  <p className="text-sm drop-shadow-md">{trend.productCount} sản phẩm</p>
-                  <span
-                    className="text-sm mt-2 inline-block font-semibold group-hover/card:underline drop-shadow-md cursor-pointer opacity-80"
-                    onClick={e => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      router.push(`/trends#trend-${trend.id}`);
-                    }}
-                  >
-                    Khám phá ngay &rarr;
-                  </span>
-                </div>
-              </Link>
             </div>
           ))}
         </div>
       </div>
-      <div className="flex justify-center mt-8">
-        <motion.div
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          initial={{ y: 40, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.2 }}
-          className="overflow-hidden rounded-lg"
-        >
-          <Link href="/trends" className="btn-shine inline-block bg-pink-400 text-white px-8 py-3 rounded-lg font-semibold shadow-lg text-lg hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400">
-            Khám phá xu hướng
-          </Link>
-        </motion.div>
-      </div>
+      {/* Popup trend image */}
+      {popupTrend && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPopupTrend(null)}>
+          <div className="bg-white rounded-lg shadow-xl p-4 max-w-[90vw] max-h-[90vh] flex flex-col items-center relative" onClick={e => e.stopPropagation()}>
+            <button className="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-2xl font-bold" onClick={() => setPopupTrend(null)} aria-label="Đóng">×</button>
+            <div className="relative w-[60vw] max-w-xs aspect-[3/4] rounded-lg overflow-hidden mb-4">
+              <Image src={popupTrend.image} alt={popupTrend.name} fill className="object-cover" />
+            </div>
+            <h2 className="text-xl font-bold text-center mb-2">{popupTrend.name}</h2>
+          </div>
+        </div>
+      )}
+      <motion.div
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.96 }}
+        initial={{ y: 40, opacity: 0 }}
+        whileInView={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.2 }}
+        className="overflow-hidden rounded-lg mt-8"
+      >
+        <a href="/trends" className="btn-shine inline-block bg-pink-400 text-white px-8 py-3 rounded-lg font-semibold shadow-lg text-lg hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400">
+          Khám phá xu hướng
+        </a>
+      </motion.div>
     </div>
   );
 } 
