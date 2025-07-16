@@ -14,7 +14,7 @@ Trải nghiệm ngay tại:
 
 ## 🚀 Tính năng nổi bật
 
-- Đăng ký, đăng nhập, xác thực người dùng (NextAuth, Google, Email)
+- Đăng ký, đăng nhập, xác thực người dùng (NextAuth, Email)
 - Trang chủ hiện đại với video background, hiệu ứng động, banner khuyến mãi, sản phẩm nổi bật, trending, dịch vụ
 - Tìm kiếm, lọc, phân loại sản phẩm, wishlist, giỏ hàng, đặt hàng
 - Quản lý đơn hàng, trạng thái, lịch sử mua hàng
