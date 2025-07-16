@@ -95,7 +95,7 @@ export default function PromotionBanner() {
   if (!promotions || promotions.length === 0) {
     return (
       <div className="w-full max-w-5xl mx-auto my-3">
-        <div className="mb-6 text-3xl font-bold text-black text-center">Voucher</div>
+        <div className="mb-6 text-3xl font-bold text-pink-500 drop-shadow-lg text-center">Voucher</div>
         <div className="flex justify-center items-center h-32">
           <span className="text-lg text-gray-500">Chưa có chương trình khuyến mãi mới</span>
         </div>
@@ -110,7 +110,7 @@ export default function PromotionBanner() {
   return (
     <div className="w-full py-4 bg-pink-50 px-2 md:px-4 mx-auto">
       <motion.div
-        className="mb-4 text-3xl font-bold text-black text-center w-full mx-auto"
+        className="mb-4 text-3xl font-bold text-pink-500 drop-shadow-lg text-center w-full mx-auto"
         initial={{ scale: 0.8, opacity: 0 }}
         whileInView={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}

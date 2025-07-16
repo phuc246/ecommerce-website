@@ -104,7 +104,7 @@ export default function ShowcaseProductsGrid() {
       <div className="absolute inset-0 bg-gradient-to-br from-blue-200 via-blue-100 to-blue-50 opacity-80 blur-2xl z-0" />
       <div className="relative z-10 flex flex-col items-center justify-center w-full min-h-[480px]">
         <motion.h2
-          className="text-4xl font-extrabold mb-4 text-gray-900 drop-shadow-lg text-center"
+          className="text-4xl font-extrabold text-pink-500 drop-shadow-lg text-center mb-4"
           initial={{ scale: 0.8, opacity: 0 }}
           whileInView={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}

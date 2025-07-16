@@ -23,6 +23,7 @@ export default function Home() {
   const router = useRouter();
   const [videoHeader, setVideoHeader] = useState("");
   const [videoBackground, setVideoBackground] = useState("");
+  const [showHeroContent, setShowHeroContent] = useState(false);
 
   useEffect(() => {
     if (status === "loading") return; // Chờ session load xong
@@ -43,6 +44,12 @@ export default function Home() {
       });
   }, []);
 
+  useEffect(() => {
+    // Fallback: luôn hiện nội dung sau 2.5s
+    const timer = setTimeout(() => setShowHeroContent(true), 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const FeaturedProducts = dynamic(() => import('@/components/home/FeaturedProducts'), { ssr: false, loading: () => <div>Đang tải sản phẩm nổi bật...</div> });
   const TrendingSection = dynamic(() => import('@/components/home/TrendingSection'), { ssr: false, loading: () => <div>Đang tải xu hướng...</div> });
   const PromotionBanner = dynamic(() => import('@/components/home/PromotionBanner'), { ssr: false, loading: () => <div>Đang tải khuyến mãi...</div> });
@@ -52,10 +59,17 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Hero Section with Video Background */}
       <header className="min-h-screen relative">
-        <VideoBackground videoSrc={videoHeader} />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white z-10">
+        <VideoBackground
+          videoSrc={videoHeader}
+          onLoadedData={() => setShowHeroContent(true)}
+          onError={() => setShowHeroContent(true)}
+        />
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center text-white z-10 transition-opacity duration-700"
+          style={{ opacity: showHeroContent ? 1 : 0 }}
+        >
           <motion.h1
-            className="text-5xl font-bold mb-6 text-center drop-shadow-lg"
+            className="text-5xl font-bold mb-6 text-center bg-gradient-to-r from-pink-400 via-fuchsia-500 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg leading-[1.15] pb-2"
             initial={{ scale: 0.8, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}
@@ -131,7 +145,7 @@ export default function Home() {
                 transition={{ duration: 0.7, ease: 'easeOut' }}
               >
                 <motion.h2
-                  className="text-3xl font-bold mb-8 text-center w-full"
+                  className="text-3xl font-bold text-pink-500 drop-shadow-lg text-center w-full mb-8"
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}

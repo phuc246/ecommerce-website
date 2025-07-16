@@ -5,6 +5,7 @@ import ImageCropper, { AspectRatioOption } from '@/components/ImageCropper';
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { PlusIcon, X, Image as ImageIcon } from "lucide-react";
+import { uploadToCloudinary } from "@/utils/uploadToCloudinary";
 
 // Types
 interface Category { id: string; name: string; parentId?: string; }
@@ -140,26 +141,44 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
     fileInputRef.current?.click();
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // --- Sửa handleFileSelect để upload ngay khi chọn ảnh ---
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => { setCropImage(reader.result as string); };
-      reader.readAsDataURL(file);
+      try {
+        setIsUploading(true);
+        const url = await uploadToCloudinary(file);
+        if (croppingTarget?.type === 'main') {
+          setMainImage({ url, file: null });
+        } else if (croppingTarget?.type === 'additional') {
+          setAdditionalImages(prev => [...prev, { url, file: null, order: prev.length + 1 }].slice(0, 6));
+        } else if (croppingTarget?.type === 'variant' && croppingTarget.id) {
+          handleVariantChange(croppingTarget.id, 'image', url);
+          handleVariantChange(croppingTarget.id, 'imageFile', null);
+        }
+        setCropImage(null);
+        setCroppingTarget(null);
+      } catch (error) {
+        toast.error('Upload ảnh thất bại, vui lòng thử lại.');
+      } finally {
+        setIsUploading(false);
+      }
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleCropDone = (croppedDataUrl: string) => {
+  const handleCropDone = async (croppedDataUrl: string) => {
     if (!croppingTarget) return;
     const newFile = dataURLtoFile(croppedDataUrl, `cropped-${Date.now()}.png`);
+    // Upload lên Cloudinary ngay khi crop xong
+    const url = await uploadToCloudinary(newFile);
     if(croppingTarget.type === 'main') {
-      setMainImage({ ...mainImage!, url: croppedDataUrl, file: newFile });
+      setMainImage({ ...mainImage!, url, file: null }); // Lưu URL, không lưu file nữa
     } else if (croppingTarget.type === 'additional') {
-      setAdditionalImages(prev => [...prev, { ...additionalImages[additionalImages.length - 1], url: croppedDataUrl, file: newFile }].slice(0, 6));
+      setAdditionalImages(prev => [...prev, { ...additionalImages[additionalImages.length - 1], url, file: null }].slice(0, 6));
     } else if (croppingTarget.type === 'variant' && croppingTarget.id) {
-      handleVariantChange(croppingTarget.id, 'image', croppedDataUrl);
-      handleVariantChange(croppingTarget.id, 'imageFile', newFile);
+      handleVariantChange(croppingTarget.id, 'image', url);
+      handleVariantChange(croppingTarget.id, 'imageFile', null);
     }
     setCropImage(null);
     setCroppingTarget(null);
@@ -192,6 +211,7 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
   const uploadFile = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("destination", "product"); // Đảm bảo upload vào folder 'product' trên Cloudinary
     const res = await fetch('/api/upload', { method: "POST", body: formData });
     if(!res.ok) throw new Error(`Failed to upload ${file.name}`);
     const data = await res.json();
@@ -260,8 +280,8 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
       toast.error("Tên sản phẩm không được vượt quá 100 ký tự!");
       return;
     }
-    if (description.length > 1000) {
-      toast.error("Mô tả sản phẩm không được vượt quá 1000 ký tự!");
+    if (description.length > 3000) {
+      toast.error("Mô tả sản phẩm không được vượt quá 3000 ký tự!");
       return;
     }
     for (const v of variants) {
@@ -305,13 +325,33 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
     }
     try {
       setIsUploading(true);
+      // Đảm bảo mainImage là URL Cloudinary
       let mainImageUrl = mainImage?.url;
-      if (mainImage?.file) mainImageUrl = await uploadFile(mainImage.file);
-      const additionalImageUrls = await Promise.all(additionalImages.filter(img => img.file).map(img => uploadFile(img.file!)));
-      const variantImageUrls = await Promise.all(variants.filter(v => v.imageFile).map(async v => ({ id: v.id, url: await uploadFile(v.imageFile!) })));
-      const variantUrlMap = new Map(variantImageUrls.map(item => [item.id, item.url]));
+      if (mainImageUrl && mainImageUrl.startsWith('data:image')) {
+        mainImageUrl = await uploadToCloudinary(dataURLtoFile(mainImageUrl, 'main.png'));
+      }
+      // Đảm bảo additionalImages là URL Cloudinary
+      const additionalImagesProcessed = await Promise.all(
+        additionalImages.map(async img => {
+          if (img.url && img.url.startsWith('data:image')) {
+            const url = await uploadToCloudinary(dataURLtoFile(img.url, 'add.png'));
+            return { ...img, url };
+          }
+          return img;
+        })
+      );
+      // Đảm bảo variants[].image là URL Cloudinary
+      const variantsProcessed = await Promise.all(
+        variants.map(async v => {
+          if (v.image && typeof v.image === 'string' && v.image.startsWith('data:image')) {
+            const url = await uploadToCloudinary(dataURLtoFile(v.image, 'variant.png'));
+            return { ...v, image: url };
+          }
+          return v;
+        })
+      );
       setIsUploading(false);
-      const cleanVariants = variants.map(v => {
+      const cleanVariants = variantsProcessed.map(v => {
         const { stock, ...rest } = v as any;
         return rest;
       });
@@ -323,10 +363,10 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
         categoryId: selectedCategoryPath[selectedCategoryPath.length - 1],
         trendId: selectedTrend,
         attributeIds: selectedAttributes,
-        image: mainImage?.url,
+        image: mainImageUrl,
         images: [
-          ...(mainImage ? [{ url: mainImage.url, isMain: true, order: 0, altText: mainImage.altText }] : []),
-          ...additionalImages.map((img, idx) => ({ url: img.url, isMain: false, order: idx + 1, altText: img.altText }))
+          ...(mainImageUrl ? [{ url: mainImageUrl, isMain: true, order: 0, altText: mainImage?.altText }] : []),
+          ...additionalImagesProcessed.map((img, idx) => ({ url: img.url, isMain: false, order: idx + 1, altText: img.altText }))
         ],
         variants: cleanVariants.map(v => ({
           color: v.color,
@@ -334,7 +374,7 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
           price: parseFloat(v.price),
           salePrice: v.salePrice ? parseFloat(v.salePrice) : null,
           sku: v.sku,
-          image: variantUrlMap.get(v.id) || v.image || null,
+          image: v.image || null,
         }))
       };
       onSubmit(payload);
@@ -356,7 +396,7 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                <div>
                   <label className="font-medium text-sm">Ảnh chính*</label>
                   <div onClick={() => handleFileTrigger({ type: 'main' })} className="relative w-full overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-50 cursor-pointer group mt-1 min-h-[240px]">
-                    {mainImage?.url ? (
+                    {mainImage?.url && mainImage.url.startsWith('https://res.cloudinary.com') ? (
                       <Image
                         src={mainImage.url}
                         alt={mainImage.altText || "main"}
@@ -375,8 +415,8 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                   <label className="font-medium text-sm">Ảnh bổ sung (tối đa 6)</label>
                   <div className="flex items-center space-x-2 mt-4 overflow-x-auto pb-2">
                     {additionalImages.map((img, idx) => (
-                      !!img.url ? (
-                        <div key={img.id} className="relative w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 group flex-none">
+                      !!img.url && img.url.startsWith('https://res.cloudinary.com') ? (
+                        <div key={img.url || img.id || idx} className="relative w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 group flex-none">
                           <Image src={img.url} alt={img.altText || "sub"} fill className="object-cover" loading="lazy" />
                           <button type="button" onClick={() => removeAdditionalImage(img.id!)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 text-xs z-10" aria-label={`Remove additional image ${img.id}`}> <X size={12}/> </button>
                           <div className="absolute left-1 bottom-1 flex flex-col gap-1">
@@ -406,8 +446,8 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                  {renderCategorySelects()}
               </div>
               <div className="mt-4 relative">
-                <textarea placeholder="Mô tả sản phẩm" value={description} onChange={e => setDescription(e.target.value)} rows={6} className="w-full p-2 border rounded pr-14" maxLength={1000}/>
-                <span className="absolute right-3 bottom-2 text-xs text-gray-400 pointer-events-none bg-white px-1">{description.length}/1000</span>
+                <textarea placeholder="Mô tả sản phẩm" value={description} onChange={e => setDescription(e.target.value)} rows={6} className="w-full p-2 border rounded pr-14" maxLength={3000}/>
+                <span className="absolute right-3 bottom-2 text-xs text-gray-400 pointer-events-none bg-white px-1">{description.length}/3000</span>
               </div>
               <div className="mt-4">
                 <label className="font-medium text-sm block mb-1">Thuộc tính</label>
@@ -477,9 +517,9 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                             className="aspect-square w-20 max-w-[80px] border-2 border-dashed rounded-md flex items-center justify-center text-gray-400 cursor-pointer hover:border-pink-500 bg-white"
                             aria-label={`Add or change image for variant ${variant.id}`}
                           >
-                            {variant.image
-                              ? <Image src={variant.image} alt="variant" width={80} height={80} className="object-cover rounded-md" />
-                              : <ImageIcon size={24} />}
+                            {variant.image && typeof variant.image === 'string' && variant.image.startsWith('https://res.cloudinary.com') ? (
+                              <Image src={variant.image} alt="variant" width={80} height={80} className="object-cover rounded-md" />
+                            ) : <ImageIcon size={24} />}
                          </button>
                       </div>
                         {/* Tên biến thể + SKU */}

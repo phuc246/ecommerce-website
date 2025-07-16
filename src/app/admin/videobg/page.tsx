@@ -8,7 +8,8 @@ export default function VideoBackgroundAdminPage() {
   const [uploadingBg, setUploadingBg] = useState(false);
   const [headerProgress, setHeaderProgress] = useState(0);
   const [bgProgress, setBgProgress] = useState(0);
-  const [message, setMessage] = useState("");
+  const [headerMessage, setHeaderMessage] = useState("");
+  const [bgMessage, setBgMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   // Fetch settings on mount
@@ -66,7 +67,8 @@ export default function VideoBackgroundAdminPage() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "header" | "background") => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setMessage("");
+    if (type === "header") setHeaderMessage("");
+    else setBgMessage("");
     if (type === "header") {
       setUploadingHeader(true);
       setHeaderProgress(0);
@@ -108,30 +110,46 @@ export default function VideoBackgroundAdminPage() {
                 } catch {}
                 if (type === "header") {
                   await saveSettings(data.url, currentBg);
+                  setHeaderProgress(100);
+                  setHeaderMessage("Upload thành công!");
+                  setTimeout(() => {
+                    setUploadingHeader(false);
+                    setHeaderMessage("");
+                  }, 1200);
+                  // Fetch lại settings để cập nhật state mới nhất
+                  await refreshSettings();
+                  resolve();
                 } else {
                   await saveSettings(currentHeader, data.url);
+                  setBgProgress(100);
+                  setBgMessage("Upload thành công!");
+                  setTimeout(() => {
+                    setUploadingBg(false);
+                    setBgMessage("");
+                  }, 3000);
+                  // Fetch lại settings để cập nhật state mới nhất
+                  await refreshSettings();
+                  resolve();
                 }
-                setMessage("Upload thành công!");
-                if (type === "header") setHeaderProgress(100);
-                else setBgProgress(100);
-                // Fetch lại settings để cập nhật state mới nhất
-                await refreshSettings();
-                resolve();
               } else {
-                setMessage("Lỗi upload video");
+                if (type === "header") setHeaderMessage("Lỗi upload video");
+                else setBgMessage("Lỗi upload video");
                 reject();
               }
             } catch {
-              setMessage("Lỗi upload video");
+              if (type === "header") setHeaderMessage("Lỗi upload video");
+              else setBgMessage("Lỗi upload video");
               reject();
             }
           } else {
-            setMessage("Lỗi upload video");
+            if (type === "header") setHeaderMessage("Lỗi upload video");
+            else setBgMessage("Lỗi upload video");
             reject();
           }
         };
         xhr.onerror = function () {
-          setMessage("Có lỗi khi upload!");
+          if (type === "header") setHeaderMessage("Có lỗi khi upload!");
+          else setBgMessage("Có lỗi khi upload!");
           reject();
         };
         xhr.send(formData);
@@ -139,9 +157,7 @@ export default function VideoBackgroundAdminPage() {
     } catch {
       // Đã set message ở trên
     } finally {
-      if (type === "header") setUploadingHeader(false);
-      else setUploadingBg(false);
-      setTimeout(() => setMessage(""), 3000);
+      // Đã xử lý setUploadingHeader/Bg và message ở trên bằng setTimeout
     }
   };
 
@@ -176,8 +192,8 @@ export default function VideoBackgroundAdminPage() {
               <div className="text-xs text-gray-500 mt-1">Đang upload: {headerProgress}%</div>
             </div>
           )}
-          {message && (
-            <div className={`mt-2 text-sm ${message.includes('thành công') ? 'text-green-600' : 'text-red-600'}`}>{message}</div>
+          {headerMessage && (
+            <div className={`mt-2 text-sm ${headerMessage.includes('thành công') ? 'text-green-600' : 'text-red-600'}`}>{headerMessage}</div>
           )}
           {videoHeader && (
             <div className="mt-2">
@@ -217,8 +233,8 @@ export default function VideoBackgroundAdminPage() {
               <div className="text-xs text-gray-500 mt-1">Đang upload: {bgProgress}%</div>
             </div>
           )}
-          {message && (
-            <div className={`mt-2 text-sm ${message.includes('thành công') ? 'text-green-600' : 'text-red-600'}`}>{message}</div>
+          {bgMessage && (
+            <div className={`mt-2 text-sm ${bgMessage.includes('thành công') ? 'text-green-600' : 'text-red-600'}`}>{bgMessage}</div>
           )}
           {videoBackground && (
             <div className="mt-2">

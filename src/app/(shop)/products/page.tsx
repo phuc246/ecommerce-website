@@ -52,6 +52,17 @@ export default function ProductList() {
   const [attributes, setAttributes] = useState<{ id: string; name: string }[]>([]);
   const [hotProductIds, setHotProductIds] = useState<string[]>([]); // Thêm state lưu id sản phẩm hot
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 12;
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
+  // Reset page về 1 khi filter thay đổi
+  useEffect(() => { setCurrentPage(1); }, [filteredProducts.length]);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * productsPerPage,
+    currentPage * productsPerPage
+  );
+
   const {
     containerRef,
     handleMouseEnter,
@@ -252,7 +263,7 @@ export default function ProductList() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg mb-4"
+            className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-pink-400 via-fuchsia-500 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg mb-4"
           >
             Bộ sưu tập sản phẩm
           </motion.h1>
@@ -359,9 +370,9 @@ export default function ProductList() {
                 : `Hiển thị tất cả ${filteredProducts.length} sản phẩm`}
             </p>
             <div className="flex-grow">
-              {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[400px]">
-                  {filteredProducts.map((product, idx) => (
+              {paginatedProducts.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 min-h-[400px] transition-all duration-500 animate-fade-in">
+                  {paginatedProducts.map((product, idx) => (
                     <div key={product.id} className="group relative">
                       <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col border border-gray-100">
                         <div className="relative aspect-square overflow-hidden group/image">
@@ -498,17 +509,31 @@ export default function ProductList() {
             </div>
             {/* Pagination - Luôn hiển thị ở cuối danh sách */}
             <div className="mt-10 flex justify-center">
-              <nav className="inline-flex -space-x-px rounded-lg shadow bg-indigo-500 border border-gray-200" aria-label="Pagination">
-                <button className="relative inline-flex items-center px-3 py-2 rounded-l-lg border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-100 transition" aria-label="Previous">
-                  <span>&lt;</span>
-                </button>
-                {/* Ví dụ: 3 trang, có thể thay bằng map nếu có nhiều trang */}
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-200 bg-indigo-50 text-sm font-bold text-indigo-700 hover:bg-indigo-100 transition">1</button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-100 transition">2</button>
-                <button className="relative inline-flex items-center px-4 py-2 border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-100 transition">3</button>
-                <button className="relative inline-flex items-center px-3 py-2 rounded-r-lg border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-100 transition" aria-label="Next">
-                  <span>&gt;</span>
-                </button>
+              <nav className="inline-flex rounded-2xl shadow-lg bg-white/80 border border-gray-200 px-2 py-1 animate-fade-in" aria-label="Pagination">
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:bg-pink-100 active:scale-95 text-lg font-bold text-pink-400"
+                  aria-label="Previous"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                >&lt;</button>
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold mx-0.5 transition-all duration-200
+                      ${currentPage === i + 1
+                        ? "bg-gradient-to-r from-pink-400 to-fuchsia-400 text-white shadow-md scale-105"
+                        : "hover:bg-pink-50 text-gray-700 bg-white"}
+                    `}
+                    style={{ transition: "all 0.2s cubic-bezier(.4,2,.6,1)" }}
+                    onClick={() => setCurrentPage(i + 1)}
+                  >{i + 1}</button>
+                ))}
+                <button
+                  className="w-10 h-10 flex items-center justify-center rounded-xl transition-all hover:bg-pink-100 active:scale-95 text-lg font-bold text-pink-400"
+                  aria-label="Next"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                >&gt;</button>
               </nav>
             </div>
           </div>

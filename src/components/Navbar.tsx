@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, Search, Menu, X } from "lucide-react";
+import { ShoppingCart, Search, Menu, X, User } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import Image from "next/image";
 import { motion, AnimatePresence } from 'framer-motion';
@@ -34,6 +34,11 @@ export default function Navbar() {
   const [hasUnseen, setHasUnseen] = useState(false);
   // Quản lý trạng thái đóng/mở từng toast
   const [closedToasts, setClosedToasts] = useState<string[]>([]);
+  // Thêm state cho menu 'Xem thêm'
+  const [showMore, setShowMore] = useState(false);
+  // State cho hiệu ứng ẩn/hiện navbar khi scroll mobile
+  const [showMobileBar, setShowMobileBar] = useState(true);
+  const lastScrollY = useRef(0);
 
   // Handle scroll effect
   useEffect(() => {
@@ -137,33 +142,33 @@ export default function Navbar() {
     }
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.innerWidth >= 640) return; // Chỉ áp dụng cho mobile
+      const currentY = window.scrollY;
+      if (currentY > lastScrollY.current && currentY > 40) {
+        setShowMobileBar(false); // Scroll xuống: ẩn
+      } else {
+        setShowMobileBar(true); // Scroll lên: hiện
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <motion.nav
       initial={{ y: -60, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isAuthPage ? 'bg-transparent' : 'bg-transparent'}`}
+      animate={{ y: showMobileBar ? 0 : -80, opacity: showMobileBar ? 1 : 0 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isAuthPage ? 'bg-transparent' : 'bg-transparent'} ${!showMobileBar && 'pointer-events-none'} sm:pointer-events-auto`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 w-full">
           {/* Bên trái: để trống hoặc menu mobile */}
           <div className="flex-1 flex items-center justify-start">
-            {!isAuthPage && (
-              <div className="sm:hidden flex items-center">
-                <button
-                  type="button"
-                  className={"inline-flex items-center justify-center p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 " + (isScrolled ? 'text-gray-700 hover:text-gray-900' : 'text-white hover:text-gray-200')}
-                  aria-label="Mở menu điều hướng"
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                >
-                  {mobileMenuOpen ? (
-                    <X className="block h-6 w-6" aria-hidden="true" />
-                  ) : (
-                    <Menu className="block h-6 w-6" aria-hidden="true" />
-                  )}
-                </button>
-              </div>
-            )}
+            {/* Để trống bên trái trên mobile */}
           </div>
           {/* Logo ở giữa */}
           <div className="flex-1 flex items-center justify-center">
@@ -187,93 +192,135 @@ export default function Navbar() {
           {/* Bên phải: đăng nhập hoặc profile */}
           <div className="flex-1 flex items-center justify-end">
             {!isAuthPage && (
-              <div className="hidden sm:flex items-center gap-4 ml-4">
-                {session?.user ? (
-                  <>
-                    <DropdownMenu onOpenChange={setDropdownOpen}>
-                      <DropdownMenuTrigger asChild>
-                        <button className="flex items-center gap-2 focus:outline-none relative">
-                          <span className="hidden sm:inline text-sm font-medium relative">
-                            {session.user.name || session.user.email}
-                            {/* Red dot notification if there are unseen orders */}
-                            {hasUnseen && (
-                              <span className="absolute -top-2 -right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                            )}
-                          </span>
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {session.user.role === "ADMIN" ? (
-                          <>
-                            {pathname !== "/admin/dashboard" && (
-                              <DropdownMenuItem asChild>
-                                <Link href="/admin/dashboard">Trang quản trị</Link>
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Đăng xuất</DropdownMenuItem>
-                          </>
-                        ) : (
-                          <>
-                            <DropdownMenuItem asChild>
-                              <Link href="/profile">Hồ sơ</Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href="/profile/orders" className="flex items-center gap-2" onClick={handleOrderBadgeClick}>
-                                Đơn hàng của tôi
-                                {/* Badge chỉ hiện khi có đơn mới/chưa xem */}
-                                {hasUnseen && (
-                                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-pink-500 text-white animate-pulse">
-                                    {unseenOrderIds.length}
-                                  </span>
-                                )}
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Đăng xuất</DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </>
-                ) : (
-                  <>
-                    <motion.div
-                      whileHover={{ scale: 1.08, boxShadow: '0 0 16px #f472b6' }}
-                      whileTap={{ scale: 0.96 }}
-                      initial={{ y: -20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 400, damping: 15, delay: 0.2 } }}
+              <>
+                {/* Hiển thị icon menu hình người bên phải trên mobile */}
+                <div className="sm:hidden flex items-center">
+                  <div className="relative">
+                    <button
+                      className="text-lg font-semibold text-pink-500 px-0 py-0 bg-transparent shadow-none focus:outline-none"
+                      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     >
-                      <Link
-                        href="/login"
-                        className="bg-pink-400 text-white px-4 py-2 rounded-lg font-medium shadow hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400"
-                        aria-label="Đăng nhập"
+                      {session?.user ? (
+                        <span className="text-lg font-semibold text-pink-500 px-0 py-0 bg-transparent shadow-none">
+                          {session.user.name || <User className="w-7 h-7" />}
+                        </span>
+                      ) : (
+                        <User className="w-7 h-7 text-pink-500" />
+                      )}
+                    </button>
+                    {/* Menu mobile mới: overlay bo tròn, căn giữa, nút hồng mờ */}
+                    {mobileMenuOpen && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+                        <div className="relative z-10 flex flex-col items-center justify-center rounded-3xl bg-white/20 shadow-2xl p-8 min-w-[80vw] max-w-xs mx-auto animate-fade-in" style={{backdropFilter: 'blur(12px)'}}>
+                          {session?.user ? (
+                            <>
+                              <a href="/profile" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white text-lg font-semibold text-center shadow hover:from-blue-600 hover:to-fuchsia-600 transition">Hồ sơ cá nhân</a>
+                              <a href="/profile/orders" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-orange-400 to-yellow-400 text-white text-lg font-semibold text-center shadow hover:from-orange-500 hover:to-yellow-500 transition">Đơn hàng của tôi</a>
+                              <button onClick={() => { setMobileMenuOpen(false); signOut({ callbackUrl: '/' }); }} className="w-full mb-4 px-6 py-3 rounded-full bg-red-400/70 text-white text-lg font-semibold text-center shadow hover:bg-red-500/80 transition">Đăng xuất</button>
+                              <button onClick={() => setShowMore(!showMore)} className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 text-white text-lg font-semibold text-center shadow hover:from-fuchsia-600 hover:to-pink-500 transition">{showMore ? 'Ẩn bớt' : 'Xem thêm'}</button>
+                              {showMore && (
+                                <>
+                                  <a href="/about" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 text-white text-lg font-semibold text-center shadow hover:from-fuchsia-600 hover:to-pink-500 transition">Giới thiệu</a>
+                                  <a href="/contact" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 text-white text-lg font-semibold text-center shadow hover:from-fuchsia-600 hover:to-pink-500 transition">Liên hệ</a>
+                                  <a href="/policy" className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 text-white text-lg font-semibold text-center shadow hover:from-fuchsia-600 hover:to-pink-500 transition">Bảo mật & Điều khoản</a>
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <a href="/login" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white text-lg font-semibold text-center shadow hover:from-blue-600 hover:to-fuchsia-600 transition">Đăng nhập</a>
+                              <a href="/register" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white text-lg font-semibold text-center shadow hover:from-blue-600 hover:to-fuchsia-600 transition">Đăng ký</a>
+                              <button onClick={() => setShowMore(!showMore)} className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-fuchsia-500 text-white text-lg font-semibold text-center shadow hover:from-blue-600 hover:to-fuchsia-600 transition">{showMore ? 'Ẩn bớt' : 'Xem thêm'}</button>
+                              {showMore && (
+                                <>
+                                  <a href="/about" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 text-white text-lg font-semibold text-center shadow hover:from-fuchsia-600 hover:to-pink-500 transition">Giới thiệu</a>
+                                  <a href="/contact" className="w-full mb-4 px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 text-white text-lg font-semibold text-center shadow hover:from-fuchsia-600 hover:to-pink-500 transition">Liên hệ</a>
+                                  <a href="/policy" className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-400 text-white text-lg font-semibold text-center shadow hover:from-fuchsia-600 hover:to-pink-500 transition">Bảo mật & Điều khoản</a>
+                                </>
+                              )}
+                            </>
+                          )}
+                          <button onClick={() => setMobileMenuOpen(false)} className="absolute top-3 right-4 text-white text-3xl focus:outline-none">&times;</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Desktop profile/login giữ nguyên */}
+                <div className="hidden sm:flex items-center gap-4 ml-4">
+                  {session?.user ? (
+                    <>
+                      <DropdownMenu onOpenChange={setDropdownOpen}>
+                        <DropdownMenuTrigger asChild>
+                          <button className="flex items-center gap-2 focus:outline-none relative">
+                            <span className="hidden sm:inline text-sm font-medium relative">
+                              {session.user.name || session.user.email}
+                              {/* Red dot notification if there are unseen orders */}
+                              {hasUnseen && (
+                                <span className="absolute -top-2 -right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                              )}
+                            </span>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {session.user.role === "ADMIN" ? (
+                            <>
+                              {pathname !== "/admin/dashboard" && (
+                                <DropdownMenuItem asChild>
+                                  <Link href="/admin/dashboard">Trang quản trị</Link>
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Đăng xuất</DropdownMenuItem>
+                            </>
+                          ) : (
+                            <>
+                              <DropdownMenuItem asChild>
+                                <Link href="/profile">Hồ sơ</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href="/profile/orders" className="flex items-center gap-2" onClick={handleOrderBadgeClick}>
+                                  Đơn hàng của tôi
+                                  {/* Badge chỉ hiện khi có đơn mới/chưa xem */}
+                                  {hasUnseen && (
+                                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-pink-500 text-white animate-pulse">
+                                      {unseenOrderIds.length}
+                                    </span>
+                                  )}
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Đăng xuất</DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  ) : (
+                    <>
+                      <motion.div
+                        whileHover={{ scale: 1.08, boxShadow: '0 0 16px #f472b6' }}
+                        whileTap={{ scale: 0.96 }}
+                        initial={{ y: -20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 400, damping: 15, delay: 0.2 } }}
                       >
-                        Đăng nhập
-                      </Link>
-                    </motion.div>
-                  </>
-                )}
-              </div>
+                        <Link
+                          href="/login"
+                          className="bg-pink-400 text-white px-4 py-2 rounded-lg font-medium shadow hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400"
+                          aria-label="Đăng nhập"
+                        >
+                          Đăng nhập
+                        </Link>
+                      </motion.div>
+                    </>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
       {/* Overlay mobile menu giữ nguyên */}
-      {!isAuthPage && mobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/60 z-40 flex flex-col items-center justify-center gap-8 animate-fade-in sm:hidden">
-          <button
-            className="absolute top-6 right-6 text-white text-3xl focus:outline-none"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-label="Đóng menu điều hướng"
-          >
-            <X className="h-8 w-8" />
-          </button>
-          <Link href="/" className={`text-2xl font-bold ${pathname === '/' ? 'text-indigo-500 underline' : 'text-white hover:text-indigo-400'}`} onClick={() => setMobileMenuOpen(false)}>Trang chủ</Link>
-          <Link href="/products" className={`text-2xl font-bold ${pathname === '/products' ? 'text-indigo-500 underline' : 'text-white hover:text-indigo-400'}`} onClick={() => setMobileMenuOpen(false)}>Sản phẩm</Link>
-          {!session?.user && (
-            <Link href="/login" className="text-2xl font-bold text-white bg-indigo-600 px-6 py-2 rounded-lg shadow hover:bg-indigo-700 transition-colors" onClick={() => setMobileMenuOpen(false)}>Đăng nhập</Link>
-          )}
-        </div>
-      )}
+      {/* XOÁ TOÀN BỘ PHẦN NÀY */}
       {/* Notification panel for new orders */}
       {/* Hiển thị nhiều toast, mỗi toast cho một đơn hàng mới/chưa xem */}
       {hasUnseen && unseenOrderIds.length > 0 && orders.length > 0 && (

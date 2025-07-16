@@ -68,7 +68,7 @@ export default function TrendingSection() {
   return (
     <div className="py-12">
       <motion.h2
-        className="text-4xl font-extrabold text-center mb-6 text-white [text-shadow:_2px_2px_4px_rgb(0_0_0_/_50%)]"
+        className="text-4xl font-extrabold text-center mb-6 bg-gradient-to-r from-blue-300 via-cyan-500 to-green-600 bg-clip-text text-transparent drop-shadow-lg"
         initial={{ scale: 0.8, opacity: 0 }}
         whileInView={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.1 }}

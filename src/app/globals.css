@@ -587,3 +587,28 @@ html {
 .related-slider-minheight-2 { min-height: 464px; }
 .related-slider-minheight-3 { min-height: 704px; }
 .related-slider-minheight-4 { min-height: 944px; }
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+.ripple:after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255,255,255,0.4);
+  border-radius: 100%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: width 0.4s cubic-bezier(.4,2,.6,1), height 0.4s cubic-bezier(.4,2,.6,1), opacity 0.4s;
+  opacity: 0;
+}
+.ripple:active:after {
+  width: 200px;
+  height: 200px;
+  opacity: 1;
+  transition: 0s;
+}

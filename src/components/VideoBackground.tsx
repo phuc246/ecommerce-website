@@ -5,9 +5,11 @@ import React from 'react';
 
 interface VideoBackgroundProps {
   videoSrc: string;
+  onLoadedData?: () => void;
+  onError?: () => void;
 }
 
-export default function VideoBackground({ videoSrc }: VideoBackgroundProps) {
+export default function VideoBackground({ videoSrc, onLoadedData, onError }: VideoBackgroundProps) {
   return (
     <motion.video
       src={videoSrc}
@@ -20,6 +22,8 @@ export default function VideoBackground({ videoSrc }: VideoBackgroundProps) {
       initial={{ opacity: 0, scale: 1.05 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 1.2, ease: 'easeOut' }}
+      onLoadedData={onLoadedData}
+      onError={onError}
     />
   );
 } 
