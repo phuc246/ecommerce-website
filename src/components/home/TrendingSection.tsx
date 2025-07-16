@@ -115,7 +115,7 @@ export default function TrendingSection() {
                     <h3 className="font-bold text-lg drop-shadow-lg">{trend.name}</h3>
                     <p className="text-sm drop-shadow-md">{trend.productCount} sản phẩm</p>
                     <a
-                      href={`/trends/${trend.id}`}
+                      href={`/trends#trend-${trend.id}`}
                       className="text-sm mt-2 inline-block font-semibold group-hover/card:underline drop-shadow-md cursor-pointer opacity-80"
                       style={{ pointerEvents: 'auto' }}
                       onClick={e => e.stopPropagation()}
@@ -146,7 +146,7 @@ export default function TrendingSection() {
         initial={{ y: 40, opacity: 0 }}
         whileInView={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.2 }}
-        className="overflow-hidden rounded-lg mt-8"
+        className="overflow-hidden rounded-lg mt-8 flex justify-center"
       >
         <a href="/trends" className="btn-shine inline-block bg-pink-400 text-white px-8 py-3 rounded-lg font-semibold shadow-lg text-lg hover:bg-pink-500 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-400">
           Khám phá xu hướng
