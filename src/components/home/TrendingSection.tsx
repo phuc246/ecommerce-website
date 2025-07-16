@@ -100,7 +100,7 @@ export default function TrendingSection() {
                       : 'w-1/3 max-w-lg')
               }
             >
-              <Link href={`/trends/${trend.id}`} className="group/card relative block">
+              <Link href={`/trends/${trend.id}`} prefetch={false} className="group/card relative block">
                 <div className="relative overflow-hidden rounded-lg aspect-[3/4]">
                   <Image
                     src={trend.image}
