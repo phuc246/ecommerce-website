@@ -8,7 +8,7 @@
 ## Live Demo
 
 Trải nghiệm ngay tại:  
-👉 [https://ecommercedoovin.vercel.app/](https://ecommercedoovin.vercel.app/)
+👉 [https://doovin.vercel.app/](https://doovin.vercel.app/)
 
 ---
 
