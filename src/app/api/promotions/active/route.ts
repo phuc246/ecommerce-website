@@ -4,12 +4,13 @@ import { prisma } from '@/lib/prisma';
 // GET /api/promotions/active
 export async function GET() {
   try {
-    const now = new Date();
     const activePromotions = await prisma.promotion.findMany({
       where: {
         isActive: true,
-        startDate: { lte: now },
-        endDate: { gte: now },
+        // Đã gỡ bỏ logic lọc theo ngày để hiển thị tất cả voucher được kích hoạt trên trang chủ.
+        // Việc kiểm tra ngày hiệu lực sẽ được thực hiện ở trang checkout.
+        // startDate: { lte: now },
+        // endDate: { gte: now },
       },
       orderBy: {
         createdAt: "desc",

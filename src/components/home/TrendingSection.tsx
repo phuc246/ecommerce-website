@@ -61,9 +61,12 @@ export default function TrendingSection() {
     // );
   }
 
+  // Lọc trends hợp lệ trước khi render
+  const validTrends = trends.filter(trend => trend && trend.id && trend.name && trend.image && typeof trend.productCount === 'number');
+
   // Thay layout flex cho trends
-  const isScroll = trends.length > 4;
-  const isCenter = trends.length < 4;
+  const isScroll = validTrends.length > 4;
+  const isCenter = validTrends.length < 4;
 
   return (
     <div className="py-12">
@@ -83,16 +86,16 @@ export default function TrendingSection() {
               : 'flex flex-nowrap justify-center')
           }
         >
-          {trends.map((trend, index) => (
+          {validTrends.map((trend, index) => (
             <div
               key={`${trend.id}-${index}`}
               className={
                 'flex-shrink-0 mx-3 ' +
                 (isScroll
                   ? 'w-[45vw] md:w-[23vw] lg:w-[22vw]'
-                  : trends.length === 1
+                  : validTrends.length === 1
                     ? 'w-full max-w-2xl'
-                    : trends.length === 2
+                    : validTrends.length === 2
                       ? 'w-1/2 max-w-xl'
                       : 'w-1/3 max-w-lg')
               }

@@ -14,6 +14,11 @@ interface Promotion {
   discount: string;
   expiryDate: string;
   backgroundImage: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+  usageLimit: number;
+  timesUsed: number;
 }
 
 export default function PromotionBanner() {
@@ -31,7 +36,6 @@ export default function PromotionBanner() {
       try {
         const response = await fetch('/api/promotions/active');
         if (!response.ok) {
-          console.error('[PromotionBanner] Fetch failed:', response.status, response.statusText);
           throw new Error('Failed to fetch promotions');
         }
         const data = await response.json();
@@ -44,12 +48,16 @@ export default function PromotionBanner() {
             discount: promo.discountValue ? (promo.discountType === 'PERCENTAGE' ? `${promo.discountValue}%` : `${promo.discountValue.toLocaleString('vi-VN')} VND`) : '',
             expiryDate: promo.endDate || '',
             backgroundImage: promo.backgroundImage || '',
+            isActive: promo.isActive,
+            startDate: promo.startDate,
+            endDate: promo.endDate,
+            usageLimit: promo.usageLimit,
+            timesUsed: promo.timesUsed,
           })));
         } else {
           setPromotions([]);
         }
       } catch (error) {
-        console.error('[PromotionBanner] Error:', error);
         setPromotions([]);
       } finally {
         setLoading(false);
@@ -71,7 +79,7 @@ export default function PromotionBanner() {
       }
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const minutes = Math.floor((diff / 1000 / 60) % 60);
       const seconds = Math.floor((diff / 1000) % 60);
       setTimeLeft(`${days} ngày ${hours}h ${minutes}m ${seconds}s`);
     }, 1000);
@@ -122,83 +130,108 @@ export default function PromotionBanner() {
           `flex gap-6 snap-x snap-mandatory md:px-2 w-full overflow-x-auto justify-start`
         }
       >
-        {promotions.map((promo) => (
-          <div
-            key={promo.id}
-            className={
-              `flex-shrink-0 snap-center h-[90px] md:h-[140px] rounded-lg overflow-hidden relative shadow-lg bg-white/80 min-w-[80vw] sm:min-w-[250px] ` +
-              (isCenter
-                ? (promotions.length === 1
-                    ? 'w-full max-w-2xl'
-                    : promotions.length === 2
-                      ? 'w-1/2 max-w-xl'
-                      : 'w-1/3 max-w-lg')
-                : 'w-1/4 min-w-[250px] max-w-[420px]') +
-              ' sm:w-1/2 sm:max-w-xs w-[90vw] min-w-[260px] max-w-[95vw]'
-            }
-          >
-            <div className="absolute inset-0 w-full h-full z-0">
-              {(() => {
-                const bg = promo.backgroundImage;
-                const isVideo = typeof bg === 'string' && bg.toLowerCase().endsWith('.mp4');
-                if (bg) {
-                  if (isVideo) {
-                    return <video src={bg} className="w-full h-full object-cover" autoPlay loop muted playsInline />;
+        {promotions.map((promo) => {
+          const now = new Date();
+          const startDate = new Date(promo.startDate);
+          const endDate = new Date(promo.endDate);
+          let statusText = '';
+          let statusColor = '';
+
+          if (now < startDate) {
+            statusText = 'Sắp có';
+            statusColor = 'bg-blue-500';
+          } else if (now > endDate) {
+            statusText = 'Hết hạn';
+            statusColor = 'bg-gray-500';
+          } else if (promo.usageLimit && promo.timesUsed >= promo.usageLimit) {
+            statusText = 'Hết lượt';
+            statusColor = 'bg-yellow-500';
+          } else {
+            statusText = 'Đang chạy';
+            statusColor = 'bg-green-500';
+          }
+          
+          return (
+            <div
+              key={promo.id}
+              className={
+                `flex-shrink-0 snap-center h-[90px] md:h-[140px] rounded-lg overflow-hidden relative shadow-lg bg-white/80 min-w-[80vw] sm:min-w-[250px] ` +
+                (isCenter
+                  ? (promotions.length === 1
+                      ? 'w-full max-w-2xl'
+                      : promotions.length === 2
+                        ? 'w-1/2 max-w-xl'
+                        : 'w-1/3 max-w-lg')
+                  : 'w-1/4 min-w-[250px] max-w-[420px]') +
+                ' sm:w-1/2 sm:max-w-xs w-[90vw] min-w-[260px] max-w-[95vw]'
+              }
+            >
+              <div className="absolute inset-0 w-full h-full z-0">
+                {(() => {
+                  const bg = promo.backgroundImage;
+                  const isVideo = typeof bg === 'string' && bg.toLowerCase().endsWith('.mp4');
+                  if (bg) {
+                    if (isVideo) {
+                      return <video src={bg} className="w-full h-full object-cover" autoPlay loop muted playsInline />;
+                    } else {
+                      return <img src={bg} alt="Banner background" className="w-full h-full object-cover" loading={promo.id === promotions[0].id ? "eager" : "lazy"} width="420" height="200" />;
+                    }
                   } else {
-                    return <img src={bg} alt="Banner background" className="w-full h-full object-cover" loading={promo.id === promotions[0].id ? "eager" : "lazy"} width="420" height="200" />;
+                    return <div className="w-full h-full bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 opacity-80" />;
                   }
-                } else {
-                  return <div className="w-full h-full bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 opacity-80" />;
-                }
-              })()}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
-            </div>
-            <div className="relative z-10 flex flex-col justify-center w-full h-full p-4 text-white">
-              <h3 className="font-bold text-base md:text-2xl mb-1 flex items-center gap-2">
-                {promo.title}
-                <motion.span
-                  initial={{ scale: 1 }}
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
-                  className="inline-block text-yellow-300"
-                >
-                  <Sparkles size={20} />
-                </motion.span>
-              </h3>
-              <p className="text-xs md:text-sm mb-1 line-clamp-2 md:line-clamp-3">{promo.description}</p>
-              <div className="flex flex-row items-center gap-2 mb-1 flex-wrap">
-                <motion.div
-                  whileHover={{ scale: 1.08, rotate: [0, 2, -2, 0] }}
-                  className="bg-pink-100 text-indigo-900 font-mono font-bold py-1 px-3 rounded-lg flex items-center cursor-pointer border-2 border-yellow-300 text-xs md:text-base"
-                  onClick={() => copyToClipboard(promo.code)}
-                  aria-label="Sao chép mã khuyến mãi"
-                  style={{ wordBreak: 'break-all', fontSize: 'clamp(13px,3vw,18px)' }}
-                >
-                  <Sparkles className="mr-1 text-yellow-400 animate-pulse" size={16} />
-                  <span className="mr-1">{promo.code}</span>
-                  {copied[promo.code] ? (
-                    <span className="text-green-600 text-xs">Đã sao chép!</span>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  )}
-                </motion.div>
-                {/* Hiển thị loại giảm giá */}
-                <div className="text-xs font-semibold text-pink-700 mt-1 bg-white/80 rounded px-2 py-0.5 ml-2">
-                  {promo.discount && promo.discount.includes('%')
-                    ? `Giảm ${promo.discount}`
-                    : promo.discount && !isNaN(Number(promo.discount.replace(/[^\d]/g, '')))
-                      ? `Giảm ${Number(promo.discount.replace(/[^\d]/g, '')).toLocaleString()}đ`
-                      : ''}
+                })()}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
+              </div>
+              <div className="absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded-full z-20" style={{ backgroundColor: statusColor }}>
+                {statusText}
+              </div>
+              <div className="relative z-10 flex flex-col justify-center w-full h-full p-4 text-white">
+                <h3 className="font-bold text-base md:text-2xl mb-1 flex items-center gap-2">
+                  {promo.title}
+                  <motion.span
+                    initial={{ scale: 1 }}
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: 'easeInOut' }}
+                    className="inline-block text-yellow-300"
+                  >
+                    <Sparkles size={20} />
+                  </motion.span>
+                </h3>
+                <p className="text-xs md:text-sm mb-1 line-clamp-2 md:line-clamp-3">{promo.description}</p>
+                <div className="flex flex-row items-center gap-2 mb-1 flex-wrap">
+                  <motion.div
+                    whileHover={{ scale: 1.08, rotate: [0, 2, -2, 0] }}
+                    className="bg-pink-100 text-indigo-900 font-mono font-bold py-1 px-3 rounded-lg flex items-center cursor-pointer border-2 border-yellow-300 text-xs md:text-base"
+                    onClick={() => copyToClipboard(promo.code)}
+                    aria-label="Sao chép mã khuyến mãi"
+                    style={{ wordBreak: 'break-all', fontSize: 'clamp(13px,3vw,18px)' }}
+                  >
+                    <Sparkles className="mr-1 text-yellow-400 animate-pulse" size={16} />
+                    <span className="mr-1">{promo.code}</span>
+                    {copied[promo.code] ? (
+                      <span className="text-green-600 text-xs">Đã sao chép!</span>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </motion.div>
+                  {/* Hiển thị loại giảm giá */}
+                  <div className="text-xs font-semibold text-pink-700 mt-1 bg-white/80 rounded px-2 py-0.5 ml-2">
+                    {promo.discount && promo.discount.includes('%')
+                      ? `Giảm ${promo.discount}`
+                      : promo.discount && !isNaN(Number(promo.discount.replace(/[^\d]/g, '')))
+                        ? `Giảm ${Number(promo.discount.replace(/[^\d]/g, '')).toLocaleString()}đ`
+                        : ''}
+                  </div>
+                  <span className="text-xs font-medium block w-full md:w-auto">
+                    {promo.expiryDate ? `HSD: ${new Date(promo.expiryDate).toLocaleDateString('vi-VN')}` : ''}
+                  </span>
                 </div>
-                <span className="text-xs font-medium block w-full md:w-auto">
-                  {promo.expiryDate ? `Còn lại: ${Math.floor((new Date(promo.expiryDate).getTime() - Date.now())/(1000*60*60*24))} ngày` : ''}
-                </span>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
