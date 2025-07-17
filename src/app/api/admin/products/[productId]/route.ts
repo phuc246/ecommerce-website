@@ -121,7 +121,7 @@ export async function PUT(request: Request, { params: { productId } }: { params:
 
     await prisma.productAttribute.deleteMany({ where: { productId } });
     await prisma.productTrend.deleteMany({ where: { productId } });
-    // Cập nhật sản phẩm (KHÔNG truyền variants: { create: ... } nữa)
+    // Cập nhật sản phẩm (KHÔNG truyền productAttributes, productTrends ở đây!)
     const updated = await prisma.product.update({
       where: { id: productId },
       data: {
@@ -130,19 +130,27 @@ export async function PUT(request: Request, { params: { productId } }: { params:
         image,
         images: images && images.length > 0 ? { create: images } : undefined,
         category: { connect: { id: categoryId } },
-        productAttributes: {
-          create: attributeIds?.map((attrId: string) => ({
-            attribute: { connect: { id: attrId } },
-          })) || [],
-        },
-        productTrends: trendId ? {
-          create: {
-            trend: { connect: { id: trendId } },
-          },
-        } : undefined,
+        // KHÔNG truyền productAttributes, productTrends ở đây!
       },
       include: { variants: true, category: true }
     });
+    // Tạo lại productAttributes và productTrends sau khi update
+    if (attributeIds && attributeIds.length > 0) {
+      await prisma.productAttribute.createMany({
+        data: attributeIds.map((attrId: string) => ({
+          productId,
+          attributeId: attrId,
+        })),
+      });
+    }
+    if (trendId) {
+      await prisma.productTrend.create({
+        data: {
+          productId,
+          trendId,
+        },
+      });
+    }
     // Rút gọn thông tin log
     const beforeSummary = before ? getSummary(before, before?.productAttributes?.map((a: any) => a.attributeId), before?.variants) : null;
     const afterSummary = getSummary(updated, attributeIds, variants);
