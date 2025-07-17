@@ -101,7 +101,13 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
   const [mainImage, setMainImage] = useState<{ id?: string, url: string, file: File | null, altText?: string } | null>(initialData?.images?.find((img: any) => img.isMain) ? { ...initialData.images.find((img: any) => img.isMain), file: null } : null);
   const [additionalImages, setAdditionalImages] = useState<{ id?: string, url: string, file: File | null, altText?: string, order: number }[]>(
     initialData?.images
-      ? initialData.images.filter((img: any) => !img.isMain).map((img: any, idx: number) => ({ ...img, file: null, order: img.order ?? idx + 1 }))
+      ? Array.from(
+          new Map(
+            initialData.images
+              .filter((img: any) => !img.isMain)
+              .map((img: any) => [img.url, { ...img, file: null, order: img.order }])
+          ).values()
+        ) as { id?: string, url: string, file: File | null, altText?: string, order: number }[]
       : []
   );
   const [variants, setVariants] = useState<Variant[]>(
@@ -125,7 +131,13 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
       setMainImage(initialData.images?.find((img: any) => img.isMain) ? { ...initialData.images.find((img: any) => img.isMain), file: null } : null);
       setAdditionalImages(
         initialData.images
-          ? initialData.images.filter((img: any) => !img.isMain).map((img: any, idx: number) => ({ ...img, file: null, order: img.order ?? idx + 1 }))
+          ? Array.from(
+              new Map(
+                initialData.images
+                  .filter((img: any) => !img.isMain)
+                  .map((img: any) => [img.url, { ...img, file: null, order: img.order }])
+              ).values()
+            ) as { id?: string, url: string, file: File | null, altText?: string, order: number }[]
           : []
       );
       setVariants(
@@ -163,7 +175,7 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
     if(croppingTarget.type === 'main') {
       setMainImage({ ...mainImage!, url, file: null }); // Lưu URL, không lưu file nữa
     } else if (croppingTarget.type === 'additional') {
-      setAdditionalImages(prev => [...prev, { ...additionalImages[additionalImages.length - 1], url, file: null }].slice(0, 6));
+      setAdditionalImages(prev => [...prev, { url, file: null, order: prev.length + 1 }].slice(0, 6));
     } else if (croppingTarget.type === 'variant' && croppingTarget.id) {
       handleVariantChange(croppingTarget.id, 'image', url);
       handleVariantChange(croppingTarget.id, 'imageFile', null);
@@ -404,7 +416,7 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                   <div className="flex items-center space-x-2 mt-4 overflow-x-auto pb-2">
                     {additionalImages.map((img, idx) => (
                       !!img.url && img.url.startsWith('https://res.cloudinary.com') ? (
-                        <div key={img.url || img.id || idx} className="relative w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 group flex-none">
+                        <div key={`${img.url}-${idx}`} className="relative w-20 h-20 rounded-md overflow-hidden cursor-pointer border-2 group flex-none">
                           <Image src={img.url} alt={img.altText || "sub"} fill className="object-cover" loading="lazy" />
                           <button type="button" onClick={() => removeAdditionalImage(img.id!)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 text-xs z-10" aria-label={`Remove additional image ${img.id}`}> <X size={12}/> </button>
                           <div className="absolute left-1 bottom-1 flex flex-col gap-1">

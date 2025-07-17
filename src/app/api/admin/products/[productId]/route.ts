@@ -13,10 +13,11 @@ function getSummary(product: any, attributeIds: string[], variants: any[]) {
 }
 
 export async function PUT(request: Request, { params: { productId } }: { params: { productId: string } }) {
+  let requestData: any = undefined;
   try {
     const session = await getServerSession(authOptions);
-  const data = await request.json();
-    const { name, description, image, images, categoryId, trendId, attributeIds, variants } = data;
+    requestData = await request.json();
+    const { name, description, image, images, categoryId, trendId, attributeIds, variants } = requestData;
     if (!name || !image || !categoryId || !variants || !Array.isArray(variants) || variants.length === 0) {
       return NextResponse.json({ error: "Missing required fields or invalid variants" }, { status: 400 });
     }
@@ -135,15 +136,19 @@ export async function PUT(request: Request, { params: { productId } }: { params:
       include: { variants: true, category: true }
     });
     // Tạo lại productAttributes và productTrends sau khi update
-    if (attributeIds && attributeIds.length > 0) {
-      await prisma.productAttribute.createMany({
-        data: attributeIds.map((attrId: string) => ({
-          productId,
-          attributeId: attrId,
-        })),
-      });
+    if (Array.isArray(attributeIds) && attributeIds.length > 0) {
+      // Loại bỏ trùng lặp attributeId để tránh lỗi unique
+      const uniqueAttributeIds = Array.from(new Set(attributeIds.filter(id => typeof id === 'string' && id)));
+      if (uniqueAttributeIds.length > 0) {
+        await prisma.productAttribute.createMany({
+          data: uniqueAttributeIds.map((attrId: string) => ({
+            productId,
+            attributeId: attrId,
+          })),
+        });
+      }
     }
-    if (trendId) {
+    if (typeof trendId === 'string' && trendId) {
       await prisma.productTrend.create({
         data: {
           productId,
@@ -179,7 +184,7 @@ export async function PUT(request: Request, { params: { productId } }: { params:
   });
   return NextResponse.json(updated);
   } catch (error) {
-    console.error("Error updating product:", error);
+    console.error("Error updating product:", error, JSON.stringify(requestData));
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 } 
