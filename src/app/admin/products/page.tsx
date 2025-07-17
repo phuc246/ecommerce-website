@@ -28,7 +28,7 @@ export default function AdminProductsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(30);
   const [searchTerm, setSearchTerm] = useState("");
   const [logs, setLogs] = useState<Log[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
@@ -45,7 +45,10 @@ export default function AdminProductsPage() {
     fetcher
   );
 
-  const products = data?.products || [];
+  const products = (data?.products || []).map((p: any) => ({
+    ...p,
+    attributes: p.productAttributes?.map((pa: any) => pa.attribute ? { id: pa.attribute.id, name: pa.attribute.name } : null).filter(Boolean) || [],
+  }));
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / limit);
 

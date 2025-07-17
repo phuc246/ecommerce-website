@@ -19,6 +19,7 @@ interface Category {
   id: string;
   name: string;
   image?: string;
+  parentId?: string; // Thêm parentId để phân biệt danh mục cha và con
 }
 
 interface Product {
@@ -142,16 +143,32 @@ export default function ProductList() {
       });
   }, []);
 
-  // Filter products when category changes
+  // Thay thế useEffect filter theo selectedCategory:
   useEffect(() => {
     if (selectedCategory) {
-      setFilteredProducts(
-        products.filter(product => product.category.id === selectedCategory)
-      );
+      // Tìm các category con (nếu có)
+      const selectedCat = categories.find(c => c.id === selectedCategory);
+      if (!selectedCat) {
+        setFilteredProducts(products);
+        return;
+      }
+      // Nếu là danh mục cha (không có parentId), lấy cả sản phẩm thuộc cha và các con
+      if (!('parentId' in selectedCat) || !selectedCat.parentId) {
+        // Lấy id các category con
+        const childIds = categories.filter(c => (c as any).parentId === selectedCategory).map(c => c.id);
+        setFilteredProducts(
+          products.filter(product =>
+            product.category.id === selectedCategory || childIds.includes(product.category.id)
+          )
+        );
+      } else {
+        // Nếu là danh mục con, chỉ lấy sản phẩm thuộc con
+        setFilteredProducts(products.filter(product => product.category.id === selectedCategory));
+      }
     } else {
       setFilteredProducts(products);
     }
-  }, [selectedCategory, products]);
+  }, [selectedCategory, products, categories]);
 
   useEffect(() => {
     if (!filteredProducts.length) return;
@@ -216,8 +233,8 @@ export default function ProductList() {
     if (filters.maxPrice) {
       filtered = filtered.filter(p => (p.maxSalePrice ?? p.maxPrice ?? 0) <= Number(filters.maxPrice));
     }
-    if (filters.category) {
-      filtered = filtered.filter(p => p.category.id === filters.category);
+    if (filters.categories && Array.isArray(filters.categories) && filters.categories.length > 0) {
+      filtered = filtered.filter(p => filters.categories.includes(p.category.id));
     }
     if (filters.attributes && filters.attributes.length > 0) {
       filtered = filtered.filter(p => p.attributes && p.attributes.some(a => filters.attributes.includes(a.id)));
@@ -235,6 +252,9 @@ export default function ProductList() {
     }
     setFilteredProducts(filtered);
   };
+
+  // State lưu ảnh preview cho từng sản phẩm
+  const [mainImages, setMainImages] = useState<{ [id: string]: string }>({});
 
   if (loading) {
     return (
@@ -263,7 +283,7 @@ export default function ProductList() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-pink-400 via-fuchsia-500 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg mb-4"
+            className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-pink-400 via-fuchsia-500 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg mb-4 leading-normal md:leading-tight py-2"
           >
             Bộ sưu tập sản phẩm
           </motion.h1>
@@ -287,8 +307,6 @@ export default function ProductList() {
           onMouseLeave={handleMouseLeave}
           onScroll={handleScroll}
         >
-          {/* Left shadow fade effect */}
-          <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
           {categories.map((category) => (
             <div
               key={category.id}
@@ -314,8 +332,6 @@ export default function ProductList() {
               </div>
             </div>
           ))}
-          {/* Right shadow fade effect */}
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
         </div>
       </div>
       {/* Product attribute bar section */}
@@ -377,7 +393,7 @@ export default function ProductList() {
                       <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 h-full flex flex-col border border-gray-100">
                         <div className="relative aspect-square overflow-hidden group/image">
                           <Image
-                            src={product.image}
+                            src={mainImages[product.id] ?? product.image}
                             alt={product.name}
                             fill
                             className="object-cover object-center transition-transform duration-700 group-hover:scale-110"
@@ -435,32 +451,18 @@ export default function ProductList() {
                           </Link>
                           {/* Hiển thị dải thumbnail ảnh biến thể */}
                           {product.variants && product.variants.length > 0 && (
-                            <div className="flex gap-1 mb-1 mt-1 justify-center"
-                              onMouseLeave={e => {
-                                const img = e.currentTarget.closest('.group')?.querySelector('img[data-main]');
-                                if (img && img instanceof HTMLImageElement) {
-                                  img.src = product.image;
-                                }
-                              }}
+                            <div
+                              className="flex gap-1 mb-1 mt-1 justify-center"
+                              onMouseLeave={() => setMainImages(prev => ({ ...prev, [product.id]: product.image }))}
                             >
                               {product.variants.filter((v: any) => v.image).map((v: any) => (
                                 <img
                                   key={v.id || v.image + v.color}
                                   src={v.image}
                                   alt={v.color}
-                                  className="w-7 h-7 rounded border object-cover cursor-pointer hover:scale-110 transition-transform"
-                                  onMouseEnter={e => {
-                                    const img = e.currentTarget.closest('.group')?.querySelector('img[data-main]');
-                                    if (img && img instanceof HTMLImageElement) {
-                                      img.src = v.image;
-                                    }
-                                  }}
-                                  onClick={e => {
-                                    const img = e.currentTarget.closest('.group')?.querySelector('img[data-main]');
-                                    if (img && img instanceof HTMLImageElement) {
-                                      img.src = v.image;
-                                    }
-                                  }}
+                                  className={`w-7 h-7 rounded border object-cover cursor-pointer hover:scale-110 transition-transform ${mainImages[product.id] === v.image ? 'ring-2 ring-pink-500' : ''}`}
+                                  onMouseEnter={() => setMainImages(prev => ({ ...prev, [product.id]: v.image }))}
+                                  onClick={() => setMainImages(prev => ({ ...prev, [product.id]: v.image }))}
                                   title={v.color}
                                 />
                               ))}

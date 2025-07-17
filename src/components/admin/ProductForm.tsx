@@ -438,13 +438,33 @@ export default function ProductForm({ initialData, onSubmit, mode, categories = 
                 <span className="absolute right-3 bottom-2 text-xs text-gray-400 pointer-events-none bg-white px-1">{description.length}/3000</span>
               </div>
               <div className="mt-4">
-                <label className="font-medium text-sm block mb-1">Thuộc tính</label>
+                <label className="font-medium text-sm block mb-1 flex items-center gap-2">Thuộc tính
+                  <span className="text-xs text-gray-500 font-normal ml-1">{selectedAttributes.length}/8</span>
+                </label>
                 <div className="flex flex-wrap gap-2">
-                  {attributes.map(attr => (
-                    <button key={attr.id} type="button" onClick={() => setSelectedAttributes(prev => prev.includes(attr.id) ? prev.filter(id => id !== attr.id) : [...prev, attr.id])} className={`px-3 py-1 text-sm rounded-full border ${selectedAttributes.includes(attr.id) ? 'bg-pink-500 text-white border-pink-500' : 'bg-white hover:border-pink-400'}`}>
-                      {attr.name}
-                    </button>
-                  ))}
+                  {attributes.map(attr => {
+                    const isSelected = selectedAttributes.includes(attr.id);
+                    const isDisabled = !isSelected && selectedAttributes.length >= 8;
+                    return (
+                      <button
+                        key={attr.id}
+                        type="button"
+                        onClick={() => {
+                          if (isDisabled) return;
+                          setSelectedAttributes(prev =>
+                            isSelected ? prev.filter(id => id !== attr.id) : [...prev, attr.id]
+                          );
+                        }}
+                        className={`px-3 py-1 text-sm rounded-full border ${isSelected ? 'bg-pink-500 text-white border-pink-500' : 'bg-white hover:border-pink-400'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={isDisabled}
+                      >
+                        {attr.name}
+                      </button>
+                    );
+                  })}
+                  {selectedAttributes.length >= 8 && (
+                    <span className="text-xs text-red-500 ml-2">Chỉ được chọn tối đa 8 thuộc tính</span>
+                  )}
                 </div>
               </div>
             </div>

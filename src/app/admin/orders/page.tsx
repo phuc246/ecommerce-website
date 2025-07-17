@@ -53,7 +53,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [limit, setLimit] = useState(100);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [logs, setLogs] = useState<Log[]>([]);

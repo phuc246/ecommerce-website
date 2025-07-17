@@ -88,14 +88,14 @@ export default function ShowcaseProductsGrid() {
     hidden: {},
     show: {
       transition: {
-        staggerChildren: 0.12,
-        delayChildren: 0.2,
+        staggerChildren: 0.15, // tăng delay để hiệu ứng rõ hơn
+        delayChildren: 0.1,
       },
     },
   };
   const cardVariants = {
     hidden: { opacity: 0, y: 40 },
-    show: { opacity: 1, y: 0 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45 } },
   };
 
   return (
@@ -159,7 +159,7 @@ export default function ShowcaseProductsGrid() {
                       key={product.id}
                       className={highlighted === idx ? "relative border-animate w-full min-w-[220px] max-w-[300px] aspect-[3/4]" : "relative w-full min-w-[220px] max-w-[300px] aspect-[3/4]"}
                       variants={cardVariants}
-                      transition={{ type: 'spring', stiffness: 200, damping: 22 }}
+                      // Không cần transition riêng ở đây, để framer-motion tự stagger
                     >
                       <ProductCard 
                         product={{

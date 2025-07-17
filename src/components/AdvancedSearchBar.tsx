@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 interface Category {
   id: string;
   name: string;
+  parentId?: string;
 }
 interface Attribute {
   id: string;
@@ -41,6 +42,21 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
       colors: selectedColors,
       sizes: selectedSizes,
     });
+  };
+
+  // Lấy id các category con nếu chọn cha
+  const getCategoryFilter = () => {
+    if (!category) return [];
+    const selectedCat = categories.find(c => c.id === category);
+    if (!selectedCat) return [];
+    if (!selectedCat.parentId) {
+      // Nếu là cha, lấy cả id cha và các con
+      const childIds = categories.filter(c => c.parentId === category).map(c => c.id);
+      return [category, ...childIds];
+    } else {
+      // Nếu là con, chỉ lấy id con
+      return [category];
+    }
   };
 
   // Bỏ useEffect tự động filter
@@ -174,7 +190,7 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
             name,
             minPrice,
             maxPrice,
-            category,
+            categories: getCategoryFilter(),
             attributes: selectedAttributes,
             colors: selectedColors,
             sizes: selectedSizes,

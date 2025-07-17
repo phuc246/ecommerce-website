@@ -34,6 +34,11 @@ export async function GET(req: Request) {
         include: {
           category: true,
           variants: true,
+          productAttributes: {
+            include: {
+              attribute: true
+            }
+          },
         },
       }),
       prisma.product.count({ where }),

@@ -200,9 +200,14 @@ export default function ProductTable({ products, loading, searchTerm, onDelete, 
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {product.attributes?.map(attr => (
-                        <span key={attr.id} className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-semibold">{attr.name}</span>
+                      {product.attributes?.slice(0, 3).map(attr => (
+                        <Badge key={attr.id} className="bg-purple-100 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full text-xs font-medium">
+                          {attr.name}
+                        </Badge>
                       ))}
+                      {product.attributes && product.attributes.length > 3 && (
+                        <span className="text-xs text-gray-400 ml-1">...</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -222,7 +227,7 @@ export default function ProductTable({ products, loading, searchTerm, onDelete, 
                       variant="ghost"
                       size="icon"
                       className="bg-pink-50 hover:bg-pink-200 text-pink-600 border border-pink-200"
-                      onClick={() => router.push(`/admin/products/add?id=${product.id}`)}
+                      onClick={() => router.push(`/admin/products/${product.id}`)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
