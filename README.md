@@ -1,215 +1,169 @@
-# Doovin Ecommerce Website
+# Ecommerce Website - Fullstack Clothing Store
 
-**Tag:**  
-`nextjs` `ecommerce` `prisma` `postgresql` `cloudinary` `tailwindcss` `nextauth` `admin` `react` `typescript` `vercel` `responsive` `shop` `cart` `wishlist` `order` `dashboard` `analytics` `upload` `crop` `framer-motion` `posthog` `swr` `zod` `radix-ui` `daisyui`
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-000?logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/React-20232a?logo=react&logoColor=61dafb" />
+  <img src="https://img.shields.io/badge/TailwindCSS-38bdf8?logo=tailwindcss&logoColor=white" />
+  <img src="https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/Prisma-2d3748?logo=prisma&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169e1?logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/NextAuth.js-fff?logo=nextauth&logoColor=black" />
+  <img src="https://img.shields.io/badge/Cloudinary-3448c5?logo=cloudinary&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-2496ed?logo=docker&logoColor=white" />
+  <img src="https://img.shields.io/badge/Vercel-000?logo=vercel&logoColor=white" />
+</p>
 
----
-
-## Live Demo
-
-Trải nghiệm ngay tại:  
-👉 [https://doovin.vercel.app/](https://doovin.vercel.app/)
-
----
-
-## 🚀 Tính năng nổi bật
-
-- Đăng ký, đăng nhập, xác thực người dùng (NextAuth, Email)
-- Trang chủ hiện đại với video background, hiệu ứng động, banner khuyến mãi, sản phẩm nổi bật, trending, dịch vụ
-- Tìm kiếm, lọc, phân loại sản phẩm, wishlist, giỏ hàng, đặt hàng
-- Quản lý đơn hàng, trạng thái, lịch sử mua hàng
-- Quản lý sản phẩm, thuộc tính (occasion wear), danh mục, màu sắc, size, biến thể, ảnh, mô tả
-- Quản lý voucher/khuyến mãi, xu hướng, dịch vụ, đánh giá sản phẩm
-- Dashboard thống kê: doanh thu, đơn hàng, người dùng, sản phẩm bán chạy, biểu đồ động
-- Trang tĩnh: About, Liên hệ, Chính sách, v.v.
-- Responsive UI: tối ưu cho desktop, tablet, mobile
-- **Phân quyền admin**: chỉ truy cập admin bằng máy tính/tablet, mobile sẽ bị chặn
-- **Phân tích hành vi người dùng với PostHog**:  
-  > PostHog được tích hợp để thu thập, phân tích hành vi người dùng trên website (click, pageview, sự kiện mua hàng, v.v.), giúp tối ưu trải nghiệm và hỗ trợ quyết định kinh doanh.
+Demo: [https://doovin.vercel.app/](https://doovin.vercel.app/)
 
 ---
 
-## 👤 Hướng dẫn cho User
-
-- Đăng ký, đăng nhập, cập nhật thông tin cá nhân, đổi mật khẩu
-- Duyệt, tìm kiếm, lọc sản phẩm theo danh mục, thuộc tính, màu sắc, size, giá, xu hướng, occasion wear
-- Thêm sản phẩm vào wishlist, giỏ hàng, đặt hàng nhanh chóng
-- Quản lý đơn hàng, xem lịch sử mua, đánh giá sản phẩm
-- Lưu địa chỉ, phương thức thanh toán, quản lý tài khoản
+## 📖 Introduction
+A modern, full-featured ecommerce website for clothing stores, built with Next.js, Prisma, PostgreSQL, and TailwindCSS. The platform supports user registration, login, product search, cart, checkout, wishlist, product reviews, and a powerful admin dashboard for store management. Products support multiple variants (color, size, price, image), attributes for use cases/occasion wear (e.g. Party, Work, Sport), and discount codes (promotions). Admins can manage all aspects of the store, including products, orders, users, promotions, and analytics.
 
 ---
 
-## 🛠️ Hướng dẫn cho Admin
+## 💻 Features
 
-- Đăng nhập với quyền admin (chỉ trên desktop/tablet)
-- Quản lý sản phẩm: thêm, sửa, xóa, upload ảnh, thuộc tính, biến thể, occasion wear
-- Quản lý danh mục, màu sắc, size, voucher/khuyến mãi, xu hướng, dịch vụ
-- Quản lý đơn hàng, trạng thái, người dùng, đánh giá, footer, logo, cài đặt hệ thống
-- Dashboard thống kê trực quan, biểu đồ động, top sản phẩm, doanh thu, người dùng mới
-- Theo dõi hành vi người dùng qua PostHog analytics
+### User
+- Register / Login / Logout (NextAuth)
+- Browse product categories
+- Add products to cart
+- Checkout and order management
+- Filter and search products
+- Wishlist (save favorite products)
+- Product reviews
+- Manage addresses and payment methods
+- **View and filter products by use cases / occasion wear (e.g. Party, Work, Sport, etc.)**
+- **View and select product variants (color, size, price, image)**
+- **Apply discount codes (promotions) at checkout**
 
----
-
-## 🏗️ Kiến trúc & Công nghệ
-
-- **Next.js 14** (App Router, SSR, API Route)
-- **Prisma ORM & PostgreSQL** (Docker)
-- **NextAuth** (JWT, Google, Email)
-- **TailwindCSS + daisyUI + custom CSS**
-- **Cloudinary** (upload, crop, preview ảnh)
-- **Framer Motion**, **react-hot-toast**, **react-hook-form**, **zod**, **swr**
-- **PostHog** (analytics: thu thập, phân tích hành vi người dùng, hỗ trợ tối ưu trải nghiệm & quyết định kinh doanh)
-- **Nivo, Recharts** (biểu đồ động)
-- **JSPDF, xlsx** (xuất báo cáo PDF, Excel)
-- **Radix UI** (UI primitives)
-- **Vercel** (deploy)
-
----
-
-## 🗂️ Cấu trúc thư mục
-
-- `src/app/`: Routing, page, API route, layout
-- `src/components/`: Tất cả component UI (admin, user, home, form, v.v.)
-- `src/hooks/`: Custom React hooks
-- `src/lib/`: Auth, prisma, utils, validation
-- `src/types/`: Định nghĩa type, interface
-- `prisma/`: Schema, migration, seed
-- `public/`: Ảnh tĩnh, icon, video, logo
+### Admin
+- Product management (Add, Edit, Delete)
+  - Manage product variants (color, size, price, image)
+  - Assign use cases / occasion wear attributes to products
+- Order management
+- User management
+- Category, color, size, attribute management
+- Promotions & voucher management (create, edit, disable discount codes)
+- Trends management
+- Review management
+- Dashboard with statistics (revenue, orders, users, top products)
+- System settings
+- Admin access restricted to desktop/tablet
 
 ---
 
-## 🛠️ Hướng dẫn cài đặt & phát triển
+## 🏗️ Tech Stack
+- **Frontend:** ReactJS (Next.js 14), TailwindCSS, Framer Motion, Radix UI
+- **Backend:** Node.js (Next.js API routes), Prisma ORM
+- **Database:** PostgreSQL (Dockerized)
+- **Authentication:** NextAuth (JWT, Google, Email)
+- **Image Storage:** Cloudinary
+- **Analytics:** PostHog
+- **Deployment:** Vercel, Docker
 
-### 1. Clone & cài đặt
+---
 
+## 🖼️ Screenshots
+> _Note: Add your real UI screenshots for Home, Product, Admin pages in the `public/screenshots/` folder and reference them below._
+
+Example:
+
+![Home Page](public/screenshots/home.png)
+![Admin Dashboard](public/screenshots/admin.png)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/ecommerce-website-5.git
-cd ecommerce-website-5
+git clone https://github.com/phuc246/ecommerce-website.git
+cd ecommerce-website
 npm install
 ```
 
-### 2. Khởi động database (PostgreSQL)
-
+### 2. Start the database (PostgreSQL)
 ```bash
 docker-compose up -d
 ```
 
-### 3. Thiết lập biến môi trường
+### 3. Configure environment variables
+Create a `.env` file and fill in the required variables (see `.env.example` if available).
 
-Tạo file `.env` và điền các biến cần thiết (xem `.env.example` nếu có).
-
-### 4. Khởi tạo database
-
+### 4. Initialize the database
 ```bash
 npx prisma migrate dev --name init
 npx prisma db seed
 ```
 
-### 5. Chạy local
-
+### 5. Run the development server
 ```bash
 npm run dev
 ```
-
-Truy cập [http://localhost:3000](http://localhost:3000)
-
----
-
-## 🏷️ Quản lý thuộc tính (Use Cases / Occasion Wear)
-
-- **Admin** có thể tạo, sửa, xóa các thuộc tính sản phẩm (VD: “Dạo phố”, “Công sở”, “Dự tiệc”, “Du lịch”, “Thể thao”, “Ở nhà”, v.v.)
-- Mỗi thuộc tính là một mục đích sử dụng hoặc tình huống mặc đồ (occasion wear)
-- Sản phẩm có thể gắn nhiều thuộc tính, giúp khách hàng lọc sản phẩm theo nhu cầu thực tế
-- Lịch sử thao tác thuộc tính được ghi lại (ai tạo, sửa, xóa, khi nào)
-- **Khách hàng** có thể lọc sản phẩm theo occasion wear (VD: chỉ xem đồ đi tiệc, đồ công sở...)
+Visit [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🎟️ Quản lý voucher (Mã giảm giá)
-
-- **Admin** có thể tạo, sửa, xóa, kích hoạt/vô hiệu hóa các mã giảm giá (voucher)
-- Hỗ trợ nhiều loại: giảm giá cố định, giảm theo phần trăm, giới hạn số lần sử dụng, thời gian hiệu lực, ảnh nền cho mã
-- Lịch sử thao tác voucher được ghi lại
-- **Người dùng** nhập mã khi thanh toán để được giảm giá
-
----
-
-## 🔥 Quản lý xu hướng (Trends)
-
-- **Admin** tạo, sửa, xóa các xu hướng thời trang (trend), mỗi trend có tên, ảnh đại diện, danh sách sản phẩm liên quan
-- Có thể gắn sản phẩm vào nhiều trend, giúp khách hàng khám phá các bộ sưu tập, phong cách nổi bật
-- Lịch sử thao tác trend được ghi lại
+## 🗄️ Folder Structure
+```
+ecommerce-website/
+├── src/
+│   ├── app/           # Routing, pages, API routes, layouts
+│   ├── components/    # UI components (admin, user, home, forms, ...)
+│   ├── hooks/         # Custom React hooks
+│   ├── lib/           # Auth, prisma, utils, validation
+│   ├── types/         # TypeScript types, interfaces
+├── prisma/            # Prisma schema, migrations, seed
+├── public/            # Static assets, images, icons, video, logo
+```
 
 ---
 
-## 🛎️ Dịch vụ
-
-- Trang dịch vụ giới thiệu các tiện ích, cam kết, chính sách hậu mãi, bảo hành, đổi trả, giao hàng, chăm sóc khách hàng, v.v.
-- Hiển thị nổi bật trên trang chủ và các trang liên quan
-
----
-
-## 📝 Các trang tĩnh: About, Liên hệ, Chính sách
-
-- **About:** Giới thiệu về Doovin, sứ mệnh, giá trị, hành trình phát triển, đội ngũ, đối tác, testimonial khách hàng
-- **Liên hệ:** Thông tin liên hệ, hotline, email, địa chỉ, form gửi tin nhắn, liên kết mạng xã hội
-- **Chính sách:** Bảo mật, điều khoản sử dụng, đổi trả, vận chuyển, thanh toán
-
----
-
-## 📊 Trang Dashboard (Admin)
-
-- Thống kê tổng quan: doanh thu, số đơn hàng, số người dùng, số sản phẩm
-- Biểu đồ doanh thu, đơn hàng, người dùng mới theo tháng
-- Top sản phẩm bán chạy, trạng thái đơn hàng
-- Xuất báo cáo Excel, PDF
-- Card số liệu động, hiệu ứng đẹp, responsive
+## 🧩 Main Libraries Used
+- ReactJS, Next.js
+- TailwindCSS, Radix UI, DaisyUI
+- Prisma ORM
+- NextAuth
+- Cloudinary
+- Framer Motion
+- SWR
+- Zod
+- PostHog (analytics)
+- Nivo, Recharts (charts)
+- JSPDF, xlsx (export PDF, Excel)
 
 ---
 
-## 🗄️ Database Schema (Prisma)
-
-Các bảng chính:
-- **User, Account, Session:** người dùng, xác thực
-- **Product, ProductImage, ProductVariant, ProductAttribute, Category**
-- **Cart, CartItem, Wishlist**
-- **Order, OrderItem, Review, Payment, Address**
-- **Promotion, Trend, Log, Setting, Logo**
-
-> Xem chi tiết trong `prisma/schema.prisma`.
-
----
-
-## 🔌 API Routes
-
-- `/api/auth/*` - Xác thực, đăng nhập, đăng xuất, đổi mật khẩu
-- `/api/products`, `/api/categories`, `/api/orders`, `/api/cart`, `/api/reviews`, ...
-- `/api/admin/*` - Quản trị (chỉ ADMIN)
-- `/api/upload` - Upload ảnh lên Cloudinary
-
----
-
-## 🖼️ Upload ảnh sản phẩm
-
-- Ảnh được upload lên Cloudinary, crop, preview, nén tự động
-- Chỉ render ảnh khi đã có URL Cloudinary hợp lệ
-- Hỗ trợ drag & drop, reorder, xóa ảnh, crop ảnh
-
----
-
-## 🔒 Bảo mật & UX
-
-- Chỉ cho phép admin truy cập trang quản trị từ desktop/tablet  
-  (Nếu truy cập admin bằng mobile: hiện cảnh báo, yêu cầu đăng xuất)
-- Tất cả API admin đều kiểm tra role, session
-- Xác thực NextAuth, JWT, Google, Email
+## ✅ Roadmap
+- [x] Complete product CRUD (create, read, update, delete)
+- [x] Product variants (color, size, price, image)
+- [x] Product attributes: Use Cases / Occasion Wear
+- [x] Wishlist (save favorite products)
+- [x] Promotions & discount codes (voucher)
+- [x] User authentication & profile management
+- [x] Cart & checkout flow
+- [x] Product reviews & ratings
+- [x] Admin dashboard & statistics
+- [x] Order management
+- [x] Category, color, size, attribute management
+- [x] Trends management
+- [x] Responsive UI (desktop, tablet, mobile)
+- [x] Admin access control (desktop/tablet only)
+- [x] Analytics & user behavior tracking (PostHog)
+- [x] Export reports (PDF, Excel)
+- [ ] Stripe payment integration (coming soon)
+- [ ] Advanced analytics & reporting
+- [ ] More payment methods
+- [ ] Multi-language support
+- [ ] More UI/UX enhancements
+- [ ] Performance optimization
 
 ---
 
 ## 📄 License
-
 MIT License.
 
 ---
 
-**Enjoy Doovin Ecommerce! 🚀** 
+**Enjoy your shopping experience! 🚀** 

@@ -32,7 +32,12 @@ export async function GET() {
         backgroundImage: true,
       },
     });
-    return NextResponse.json(activePromotions);
+    return NextResponse.json(activePromotions, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    });
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch active promotions" }, { status: 500 });
   }

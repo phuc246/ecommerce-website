@@ -39,6 +39,30 @@ export default function ShowcaseProductsGrid() {
   const GRID_SIZE = 16; // 2 rows x 8 columns
   const [highlighted, setHighlighted] = useState(-1);
 
+  // Fetch sản phẩm và preload ảnh NGAY KHI MOUNT
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/products/shop?limit=18")
+      .then(res => res.json())
+      .then(data => {
+        const prods = Array.isArray(data) ? data : data.products || [];
+        setProducts(prods);
+        // Preload ảnh
+        prods.forEach((product: Product) => {
+          let mainImage = product.image;
+          if (Array.isArray(product.images) && product.images.length > 0) {
+            const mainObj = product.images.find(img => img.isMain) || product.images[0];
+            if (mainObj?.url) mainImage = mainObj.url;
+          }
+          if (mainImage) {
+            const img = new window.Image();
+            img.src = mainImage;
+          }
+        });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
   // Intersection Observer để phát hiện scroll tới section
   useEffect(() => {
     const handleScroll = () => {
@@ -63,16 +87,6 @@ export default function ShowcaseProductsGrid() {
     const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [inView, countdown, show]);
-
-  // Fetch sản phẩm khi show
-  useEffect(() => {
-    if (!show) return;
-    setLoading(true);
-    fetch("/api/products/shop?limit=18")
-      .then(res => res.json())
-      .then(data => setProducts(Array.isArray(data) ? data : data.products || []))
-      .finally(() => setLoading(false));
-  }, [show]);
 
   // Hiệu ứng đánh sóng: chọn ngẫu nhiên 1 card mỗi 3s
   useEffect(() => {

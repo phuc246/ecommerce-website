@@ -13,6 +13,18 @@ const ServicesSection = () => {
   const [highlighted, setHighlighted] = useState(0);
   const [showNotify, setShowNotify] = useState(false);
 
+  // Preload ảnh dịch vụ NGAY KHI MOUNT
+  useEffect(() => {
+    const serviceImages = [
+      '/service/Quà Doovin.png',
+      '/service/Vali Doovin Dán Sticker.png',
+    ];
+    serviceImages.forEach(src => {
+      const img = new window.Image();
+      img.src = src;
+    });
+  }, []);
+
   // Trigger inView khi scroll tới 50% section
   useEffect(() => {
     const handleScroll = () => {
