@@ -153,9 +153,9 @@ ecommerce-website/
 - [x] Analytics & user behavior tracking (PostHog)
 - [x] Export reports (PDF, Excel)
 - [ ] Stripe payment integration (coming soon)
-- [ ] Advanced analytics & reporting
-- [ ] More payment methods
-- [ ] Multi-language support
+- [ ] Advanced analytics & reporting 
+- [ ] More payment methods (coming soon)
+- [ ] Multi-language support (coming soon)
 - [ ] More UI/UX enhancements
 - [ ] Performance optimization
 
