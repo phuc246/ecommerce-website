@@ -65,9 +65,6 @@ A modern, full-featured ecommerce website for clothing stores, built with Next.j
 ---
 
 ## 🖼️ Screenshots
-> _Note: Add your real UI screenshots for Home, Product, Admin pages in the `public/screenshots/` folder and reference them below._
-
-Example:
 
 ![Home Page](public/screenshots/home.png)
 ![Admin Dashboard](public/screenshots/admin.png)
