@@ -45,6 +45,11 @@ export default function FeaturedProducts() {
       }
     };
     fetchFeaturedProducts();
+
+    // Lắng nghe sự kiện cập nhật sản phẩm nổi bật
+    const handler = () => fetchFeaturedProducts();
+    window.addEventListener('order-delivered', handler);
+    return () => window.removeEventListener('order-delivered', handler);
   }, []);
 
   useEffect(() => {

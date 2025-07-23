@@ -142,7 +142,17 @@ export default function CheckoutPage() {
       try {
         const res = await fetch('/api/promotions/active');
         const data = await res.json();
-        setAvailablePromotions(Array.isArray(data) ? data : []);
+        const now = new Date();
+        setAvailablePromotions(
+          Array.isArray(data)
+            ? data.filter(
+                (promo) =>
+                  promo.isActive &&
+                  new Date(promo.startDate) <= now &&
+                  new Date(promo.endDate) >= now
+              )
+            : []
+        );
       } catch {
         setAvailablePromotions([]);
       } finally {
@@ -504,43 +514,57 @@ export default function CheckoutPage() {
                 Mã giảm giá đang có
               </div>
               <div
-                className={
-                  availablePromotions.length > 2
-                    ? 'flex flex-nowrap gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-pink-200 scrolling-touch'
-                    : 'flex flex-wrap gap-2'
-                }
+                className="flex flex-nowrap gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-pink-200 scrolling-touch"
+                style={{ maxWidth: '100%' }}
               >
                 {promoLoading ? (
                   <div className="text-gray-400 text-sm">Đang tải...</div>
                 ) : availablePromotions.length === 0 ? (
                   <div className="text-gray-400 text-sm">Chưa có mã giảm giá nào</div>
                 ) : (
-                  availablePromotions.map((promo) => (
-                    <div
-                      key={promo.id}
-                      className={
-                        'flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1 text-sm font-mono shadow-sm' +
-                        (availablePromotions.length > 2 ? ' min-w-[210px] max-w-[320px]' : '')
+                  availablePromotions.map((promo) => {
+                    let daysLeft: number | undefined = undefined;
+                    if (promo.endDate) {
+                      const end = new Date(promo.endDate);
+                      if (!isNaN(end.getTime())) {
+                        daysLeft = Math.ceil((end.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                       }
-                    >
-                      <span className="font-bold text-pink-700">{promo.code}</span>
-                      <span className="text-xs font-semibold text-pink-700 bg-white/80 rounded px-2 py-0.5">
-                        {promo.discountType === 'PERCENTAGE'
-                          ? `Giảm ${promo.discountValue}%`
-                          : promo.discountType === 'FIXED_AMOUNT'
-                            ? `Giảm ${Number(promo.discountValue).toLocaleString()}đ`
-                            : ''}
-                      </span>
-                      <button
-                        type="button"
-                        className="ml-1 px-2 py-0.5 rounded bg-pink-100 text-pink-700 border border-pink-200 hover:bg-pink-200 transition text-xs font-bold"
-                        onClick={() => handleCopyPromo(promo.code)}
-                        aria-label="Sao chép mã giảm giá"
+                    }
+                    return (
+                      <div
+                        key={promo.id}
+                        className="flex flex-col justify-center bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-sm font-mono shadow-sm min-w-[220px] max-w-[260px] overflow-hidden"
+                        style={{ maxWidth: 260 }}
                       >
-                        {copiedPromo[promo.code] ? 'Đã sao chép!' : 'Sao chép'}
-                      </button>
-                    </div>
-                  ))
+                        {/* Dòng 1: code + nút sao chép */}
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="font-bold text-pink-700 text-base break-all pr-2">{promo.code}</span>
+                          <button
+                            type="button"
+                            className="px-2 py-0.5 rounded bg-pink-100 text-pink-700 border border-pink-200 hover:bg-pink-200 transition text-xs font-bold whitespace-nowrap"
+                            onClick={() => handleCopyPromo(promo.code)}
+                            aria-label="Sao chép mã giảm giá"
+                            style={{ flexShrink: 0 }}
+                          >
+                            {copiedPromo[promo.code] ? 'Đã sao chép!' : 'Sao chép'}
+                          </button>
+                        </div>
+                        {/* Dòng 2: giảm giá + còn X ngày */}
+                        <div className="flex items-center gap-2 text-xs text-gray-700">
+                          <span className="text-xs font-semibold text-pink-700 bg-white/80 rounded px-2 py-0.5 whitespace-nowrap">
+                            {promo.discountType === 'PERCENTAGE'
+                              ? `Giảm ${promo.discountValue}%`
+                              : promo.discountType === 'FIXED_AMOUNT'
+                                ? `Giảm ${Number(promo.discountValue).toLocaleString()}đ`
+                                : ''}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {daysLeft !== undefined ? (daysLeft > 0 ? `Còn ${daysLeft} ngày` : 'Hết hạn') : ''}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

@@ -64,6 +64,11 @@ export default function PromotionBanner() {
       }
     };
     fetchPromotions();
+
+    // Lắng nghe sự kiện cập nhật voucher
+    const handler = () => fetchPromotions();
+    window.addEventListener('promotion-updated', handler);
+    return () => window.removeEventListener('promotion-updated', handler);
   }, []);
 
   useEffect(() => {
